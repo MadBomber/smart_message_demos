@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # examples/multi_program_demo/house.rb
 
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require_relative 'messages/fire_emergency_message'
 require_relative 'messages/fire_dispatch_message'
 

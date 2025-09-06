@@ -60,8 +60,8 @@ require 'securerandom'
 require_relative 'common/status_line'
 require_relative 'common/logger'
 
-require_relative 'vsm/lib/vsm'
-require_relative 'smart_message/lib/smart_message'
+require 'vsm'
+require 'smart_message'
 
 
 require_relative 'doge_vsm/base'

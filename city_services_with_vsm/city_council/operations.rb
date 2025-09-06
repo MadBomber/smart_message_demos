@@ -2,8 +2,8 @@
 # city_council/operations.rb
 # CityCouncil Operations Component - VSM Operations Subsystem
 
-require_relative '../smart_message/lib/smart_message'
-require_relative '../vsm/lib/vsm'
+require 'smart_message'
+require 'vsm'
 require 'json'
 require 'fileutils'
 require 'securerandom'

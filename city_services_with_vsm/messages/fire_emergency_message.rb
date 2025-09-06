@@ -4,7 +4,7 @@
 # Fire emergency message sent by houses to the Fire Department when fires are detected
 # Triggers immediate fire department response with engine dispatch based on fire severity and type
 #
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class FireEmergencyMessage < SmartMessage::Base

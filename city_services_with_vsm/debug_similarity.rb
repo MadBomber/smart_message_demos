@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # Debug script to check similarity calculator data format
 
-require_relative 'vsm/lib/vsm'
+require 'vsm'
 require_relative 'doge_vsm/operations/load_departments_tool'
 require_relative 'doge_vsm/operations/similarity_calculator_tool'
 require 'yaml'

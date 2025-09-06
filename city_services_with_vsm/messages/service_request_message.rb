@@ -1,7 +1,7 @@
 # messages/service_request_message.rb
 # Message for requesting new city services from the City Council
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class ServiceRequestMessage < SmartMessage::Base

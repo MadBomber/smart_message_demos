@@ -4,7 +4,7 @@
 # Emergency resolution message broadcast when incidents are successfully resolved
 # Provides closure notification to all city services about completed emergency responses
 #
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 
 module Messages

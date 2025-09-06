@@ -4,7 +4,7 @@
 # Fire dispatch message sent by the Fire Department in response to fire emergencies
 # Contains fire engine assignments and specialized equipment details for fire suppression operations
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class FireDispatchMessage < SmartMessage::Base

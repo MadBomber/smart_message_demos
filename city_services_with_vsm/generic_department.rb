@@ -8,8 +8,8 @@
 require 'yaml'
 require 'fileutils'
 
-require_relative 'smart_message/lib/smart_message'
-require_relative 'vsm/lib/vsm'
+require 'smart_message'
+require 'vsm'
 
 
 require_relative 'common/logger'

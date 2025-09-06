@@ -1,7 +1,7 @@
 # messages/department_announcement_message.rb
 # Message for announcing new city departments created by City Council
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class DepartmentAnnouncementMessage < SmartMessage::Base

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require 'ruby_llm'
 require 'json'
 

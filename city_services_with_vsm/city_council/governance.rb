@@ -2,7 +2,7 @@
 # city_council/governance.rb
 # CityCouncil Governance Component
 
-require_relative '../vsm/lib/vsm'
+require 'vsm'
 
 module CityCouncil
   # CityCouncil Governance Component

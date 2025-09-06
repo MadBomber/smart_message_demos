@@ -6,7 +6,7 @@ require 'readline'
 require 'colorize'
 require 'securerandom'
 require 'io/console'
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require_relative 'common/logger'
 
 begin

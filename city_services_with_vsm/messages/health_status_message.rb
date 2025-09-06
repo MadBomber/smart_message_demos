@@ -4,7 +4,7 @@
 # Health status response message sent by city services back to the Health Department
 # Contains operational status with color-coded display (green=healthy, yellow=warning, orange=critical, red=failed)
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
 

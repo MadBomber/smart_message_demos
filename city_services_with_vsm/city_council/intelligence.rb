@@ -2,8 +2,8 @@
 # city_council/intelligence.rb
 # CityCouncil Intelligence Component - VSM Intelligence Subsystem
 
-require_relative '../smart_message/lib/smart_message'
-require_relative '../vsm/lib/vsm'
+require 'smart_message'
+require 'vsm'
 require 'ruby_llm'
 require 'json'
 require 'digest'

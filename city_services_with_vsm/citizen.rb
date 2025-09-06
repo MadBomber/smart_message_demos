@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # examples/multi_program_demo/citizen.rb
 
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require_relative 'messages/emergency_911_message'
 
 require_relative 'common/logger'

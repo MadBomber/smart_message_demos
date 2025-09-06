@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
-gem 'smart_message'           # An abstraction to protect message content from the backend delivery transport.
-gem 'vsm'                     # Async, recursive agent framework for Ruby (Viable System Model): capsules, tools-as-capsules, streaming tool calls, and observability.
+gem 'smart_message'          # An abstraction to protect message content from the backend delivery transport.
+gem 'vsm'                    # Async, recursive agent framework for Ruby (Viable System Model): capsules, tools-as-capsules, streaming tool calls, and observability.
 
 gem 'tty-prompt'              # A beautiful and powerful interactive command line prompt.
 gem 'tty-box'                 # Draw various frames and boxes in the terminal window.
@@ -14,3 +14,4 @@ gem 'ruby_llm'                # Ruby LLM interface for AI models
 gem 'redis'                   # Redis client for pub/sub messaging
 gem 'colorize'                # String colorization for terminal output
 gem 'minitest'                # Testing framework
+gem 'awesome_print'           # Pretty print Ruby objects with proper indentation and colors

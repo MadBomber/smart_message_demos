@@ -2,7 +2,7 @@
 # city_council/cli_port.rb
 # CityCouncil CLI Port Component
 
-require_relative '../vsm/lib/vsm'
+require 'vsm'
 require 'securerandom'
 
 module CityCouncil

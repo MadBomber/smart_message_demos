@@ -3,7 +3,7 @@
 # Silent alarm message sent by banks to the Police Department during security incidents
 # Triggers immediate police response with unit dispatch based on severity level
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class SilentAlarmMessage < SmartMessage::Base

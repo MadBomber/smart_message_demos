@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # examples/multi_program_demo/local_bank.rb
 
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require_relative 'messages/health_check_message'
 require_relative 'messages/health_status_message'
 require_relative 'messages/silent_alarm_message'

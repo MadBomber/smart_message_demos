@@ -8,8 +8,8 @@
 # Suppress Ruby 3.4.5 socket errors from DNS resolution threads
 Thread.report_on_exception = false
 
-require_relative 'smart_message/lib/smart_message'
-require_relative 'vsm/lib/vsm'
+require 'smart_message'
+require 'vsm'
 require 'ruby_llm'
 require 'json'
 require 'fileutils'

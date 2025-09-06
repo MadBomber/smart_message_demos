@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # doge_simple.rb - Simplified DOGE using core VSM concepts without full Intelligence system
 
-require_relative 'vsm/lib/vsm'
+require 'vsm'
 require 'yaml'
 require 'set'
 

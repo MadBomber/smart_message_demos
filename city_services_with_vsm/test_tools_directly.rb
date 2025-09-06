@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # Test the DOGE VSM tools directly to verify they work
 
-require_relative 'vsm/lib/vsm'
+require 'vsm'
 require_relative 'doge_vsm/operations/load_departments_tool'
 require_relative 'doge_vsm/operations/similarity_calculator_tool'
 require_relative 'doge_vsm/operations/recommendation_generator_tool'

@@ -3,7 +3,7 @@
 
 HEALTH_CHECK_RATE = 5 # seconds; setting to zero gets overruns and 1300+ msg/sec
 
-require_relative 'smart_message/lib/smart_message'
+require 'smart_message'
 require_relative 'messages/health_check_message'
 require_relative 'messages/health_status_message'
 require 'set'

@@ -4,7 +4,7 @@
 # Health check message broadcast by the Health Department to monitor city services
 # Sent every 5 seconds to all services to verify operational status
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
 

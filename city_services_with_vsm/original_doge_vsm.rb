@@ -51,7 +51,7 @@
 # The VSM paradigm transforms the monolithic DOGE class into a sophisticated, extensible system that's ready for AI integration
 # and provides much richer analysis capabilities!
 
-require_relative 'vsm/lib/vsm'
+require 'vsm'
 require_relative 'vsm/lib/vsm/drivers/ruby_llm/async_driver'
 require 'yaml'
 require 'set'

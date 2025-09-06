@@ -3,7 +3,7 @@
 # Police dispatch message sent by the Police Department in response to emergency calls
 # Contains unit assignments and response details for security incidents and crimes
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class PoliceDispatchMessage < SmartMessage::Base

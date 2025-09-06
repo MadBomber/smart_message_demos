@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # examples/messages/emergency_911_message.rb
 
-require_relative '../smart_message/lib/smart_message'
+require 'smart_message'
 
 module Messages
   class Emergency911Message < SmartMessage::Base
