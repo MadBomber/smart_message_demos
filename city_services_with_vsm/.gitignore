@@ -1,0 +1,7 @@
+/log/
+*.log
+/grave_yard/
+*.yml.doged
+*.yml
+*.jsonl
+*.json
