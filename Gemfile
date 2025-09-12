@@ -18,8 +18,16 @@ gem 'async'                     # Asynchronous I/O framework for Ruby
 gem 'ruby_llm'                  # Ruby LLM interface for AI models
 gem 'redis'                     # Redis client for pub/sub messaging
 gem 'colorize'                  # String colorization for terminal output
-gem 'minitest'                  # Testing framework
 gem 'awesome_print'             # Pretty print Ruby objects with proper indentation and colors
+
+
+# Testing dependencies
+gem 'minitest'                  # Testing framework
+gem 'minitest-reporters'        # Create customizable Minitest output formats
+gem 'rake'                      # Rake is a Make-like program implemented in Ruby
+gem 'bundler'                   # The best way to manage your application's dependencies
+
+
 
 # Additional system gems required by demos
 gem 'io-console'                # Console I/O operations

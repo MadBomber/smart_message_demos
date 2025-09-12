@@ -1,0 +1,70 @@
+# Rakefile for city services tests
+
+require 'rake/testtask'
+
+# Default task
+task default: :test
+
+# Main test task
+Rake::TestTask.new(:test) do |t|
+  t.libs << 'tests'
+  t.test_files = FileList['tests/test_*.rb'].exclude('tests/test_helper.rb')
+  t.verbose = true
+  t.warning = false
+end
+
+# Individual test tasks
+namespace :test do
+  desc "Run department discovery tests"
+  Rake::TestTask.new(:discovery) do |t|
+    t.libs << 'tests' 
+    t.test_files = ['tests/test_department_discovery.rb']
+    t.verbose = true
+  end
+
+  desc "Run message tests"
+  Rake::TestTask.new(:messages) do |t|
+    t.libs << 'tests'
+    t.test_files = ['tests/test_messages.rb'] 
+    t.verbose = true
+  end
+
+  desc "Run service request tests"
+  Rake::TestTask.new(:requests) do |t|
+    t.libs << 'tests'
+    t.test_files = ['tests/test_service_requests.rb']
+    t.verbose = true
+  end
+
+  desc "Run DOGE VSM tools tests"
+  Rake::TestTask.new(:doge) do |t|
+    t.libs << 'tests'
+    t.test_files = ['tests/test_doge_vsm_tools.rb']
+    t.verbose = true
+  end
+
+  desc "Run generic department tests"
+  Rake::TestTask.new(:department) do |t|
+    t.libs << 'tests'
+    t.test_files = ['tests/test_generic_department.rb']
+    t.verbose = true
+  end
+end
+
+# Info task
+desc "Show test information"
+task :info do
+  puts "🧪 City Services Test Suite"
+  puts "=" * 40
+  puts "Available tasks:"
+  puts "  rake test           - Run all tests"
+  puts "  rake test:discovery - Department discovery tests"
+  puts "  rake test:messages  - SmartMessage tests"  
+  puts "  rake test:requests  - Service request tests"
+  puts "  rake test:doge      - DOGE VSM tools tests"
+  puts "  rake test:department - Generic department tests"
+  puts "\nTest files:"
+  Dir['tests/test_*.rb'].reject { |f| f.include?('test_helper') }.each do |file|
+    puts "  - #{File.basename(file)}"
+  end
+end

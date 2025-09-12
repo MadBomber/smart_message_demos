@@ -1,0 +1,7 @@
+# frozen_string_literal: true
+
+# Load all rake files from lib/tasks directory
+Dir[File.join(__dir__, 'lib', 'tasks', '*.rake')].each { |f| import f }
+
+# Set default task
+task default: :test
