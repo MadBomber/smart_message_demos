@@ -14,7 +14,7 @@ GEM
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
-    async (2.29.1)
+    async (2.32.0)
       console (~> 1.29)
       fiber-annotation
       io-event (~> 1.11)
@@ -42,10 +42,10 @@ GEM
     base64 (0.3.0)
     benchmark (0.4.1)
     bigdecimal (3.2.3)
-    breaker_machines (0.4.0)
+    breaker_machines (0.5.0)
       activesupport (>= 7.2)
       concurrent-ruby (~> 1.3)
-      state_machines (>= 0.50.0)
+      state_machines (>= 0.100.0)
       zeitwerk (~> 2.7)
     colorize (1.1.0)
     concurrent-ruby (1.3.5)
@@ -54,6 +54,8 @@ GEM
       fiber-annotation
       fiber-local (~> 1.1)
       json
+    date (3.4.1)
+    digest (3.2.0)
     drb (2.2.3)
     event_stream_parser (1.0.0)
     faraday (2.13.4)
@@ -70,9 +72,11 @@ GEM
     fiber-local (1.1.0)
       fiber-storage
     fiber-storage (1.0.1)
+    fileutils (1.7.3)
     hashie (5.0.0)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
+    io-console (0.8.1)
     io-endpoint (0.15.2)
     io-event (1.14.0)
     io-stream (0.10.0)
@@ -80,11 +84,12 @@ GEM
     logger (1.7.0)
     lumberjack (1.4.1)
     marcel (1.0.4)
-    metrics (0.14.0)
+    metrics (0.15.0)
     minitest (5.25.5)
     multipart-post (2.4.1)
     net-http (0.6.0)
       uri
+    optparse (0.6.0)
     pastel (0.8.0)
       tty-color (~> 0.5)
     protocol-hpack (1.5.1)
@@ -96,11 +101,15 @@ GEM
       protocol-http (~> 0.47)
     protocol-redis (0.12.0)
     rack (3.2.1)
+    readline (0.0.4)
+      reline
     redis (5.4.1)
       redis-client (>= 0.22.0)
-    redis-client (0.25.2)
+    redis-client (0.25.3)
       connection_pool
-    ruby_llm (1.6.4)
+    reline (0.6.2)
+      io-console (~> 0.5)
+    ruby_llm (1.7.1)
       base64
       event_stream_parser (~> 1)
       faraday (>= 1.10.0)
@@ -110,7 +119,8 @@ GEM
       marcel (~> 1.0)
       zeitwerk (~> 2)
     securerandom (0.4.1)
-    smart_message (0.0.12)
+    set (1.1.2)
+    smart_message (0.0.17)
       activesupport
       async
       async-redis
@@ -127,7 +137,9 @@ GEM
       unicode-display_width (>= 1.5, < 3.0)
       unicode_utils (~> 1.4)
     strings-ansi (0.2.0)
-    traces (0.18.1)
+    time (0.4.1)
+      date
+    traces (0.18.2)
     tty-box (0.7.0)
       pastel (~> 0.8)
       strings (~> 0.2.0)
@@ -154,6 +166,7 @@ GEM
       async-http (~> 0.90)
       rack (~> 3.2)
     wisper (2.0.1)
+    yaml (0.4.0)
     zeitwerk (2.7.3)
 
 PLATFORMS
@@ -164,16 +177,29 @@ DEPENDENCIES
   async
   awesome_print
   colorize
+  digest
+  fileutils
+  io-console
+  json
   minitest
+  optparse
+  readline
   redis
   ruby_llm
+  securerandom
+  set
   smart_message
+  time
   tty-box
   tty-cursor
   tty-prompt
   tty-screen
   tty-spinner
   vsm
+  yaml
+
+RUBY VERSION
+   ruby 3.4.5p51
 
 BUNDLED WITH
-   2.7.1
+   2.7.2
