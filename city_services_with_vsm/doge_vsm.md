@@ -130,8 +130,8 @@ The DOGE VSM system implements the complete VSM paradigm with five core componen
 - Generates detailed reasoning for each recommendation
 
 ### 2. Template-Driven Architecture
-- `generic_department_sample.yml` ensures consistent department structure
-- `consolidated_department_sample.yml` provides exact AI input format specification
+- `generic_department.yml.example` ensures consistent department structure
+- `consolidated_department.yml.example` provides exact AI input format specification
 - Template validation ensures compliance across all department configurations
 
 ### 3. Quality Assurance
