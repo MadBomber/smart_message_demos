@@ -10,7 +10,6 @@ module Messages
     description 'Emergency 911 call for reporting fires, crimes, accidents, medical emergencies, or other urgent situations requiring police, fire, or medical response'
 
     transport  SmartMessage::Transport::RedisTransport.new
-    serializer SmartMessage::Serializer::Json.new
 
     VALID_EMERGENCY_TYPES = %w[fire medical crime accident hazmat rescue 
                               water_emergency animal_emergency infrastructure_emergency 

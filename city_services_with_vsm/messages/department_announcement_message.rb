@@ -14,7 +14,6 @@ module Messages
     DESC
 
     transport SmartMessage::Transport::RedisTransport.new
-    serializer SmartMessage::Serializer::Json.new
 
     VALID_STATUS           = %w[created launched active failed terminated suspended]
     VALID_CREATORS         = %w[city_council emergency_dispatch_center mayor system_admin]

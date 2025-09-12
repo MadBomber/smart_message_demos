@@ -9,7 +9,6 @@ module Messages
     description "Request for City Council to create or provide a new city service/department"
     
     transport SmartMessage::Transport::RedisTransport.new
-    serializer SmartMessage::Serializer::Json.new
     
     property :request_id, default: -> { SecureRandom.uuid }
     property :requesting_service, default: 'unknown'
