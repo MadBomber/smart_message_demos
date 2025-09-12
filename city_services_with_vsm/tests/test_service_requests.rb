@@ -19,12 +19,12 @@ class TestServiceRequests < CityServicesTestCase
     message = create_test_service_request(
       emergency_type: "Sanitation Emergency",
       description: "Need sanitation department to handle overflowing sewers",
-      requested_service: "sanitation_department"
+      requesting_service: "sanitation_department"
     )
 
     assert_instance_of Messages::ServiceRequestMessage, message
     assert_equal "Sanitation Emergency", message.emergency_type
-    assert_equal "sanitation_department", message.requested_service
+    assert_equal "sanitation_department", message.requesting_service
     assert_match(/overflowing sewers/, message.description)
     
     puts "   Created service request: #{message.emergency_type}"

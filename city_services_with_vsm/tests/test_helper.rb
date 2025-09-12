@@ -50,7 +50,7 @@ module TestHelpers
   end
 
   # Create test service request message
-  def create_test_service_request(params = {})
+  def create_test_service_request(override_params = {})
     defaults = {
       from: "test-dispatcher",
       to: "city_council", 
@@ -62,7 +62,8 @@ module TestHelpers
       original_call_id: "test-#{SecureRandom.hex(4)}"
     }
     
-    Messages::ServiceRequestMessage.new(defaults.merge(params))
+    final_params = defaults.merge(override_params)
+    Messages::ServiceRequestMessage.new(**final_params)
   end
 
   # Mock Redis for testing

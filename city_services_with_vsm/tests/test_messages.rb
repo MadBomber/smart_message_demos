@@ -51,6 +51,7 @@ class TestMessages < CityServicesTestCase
 
   def test_emergency_911_message_creation
     message = Messages::Emergency911Message.new(
+      from: "test_caller",
       caller_name: "Test Caller",
       caller_location: "123 Test Street", 
       emergency_type: "fire",
@@ -67,6 +68,7 @@ class TestMessages < CityServicesTestCase
 
   def test_service_request_message_creation  
     message = Messages::ServiceRequestMessage.new(
+      from: "test_dispatcher",
       requesting_service: "test-service",
       emergency_type: "infrastructure", 
       description: "Test service request",
@@ -82,43 +84,46 @@ class TestMessages < CityServicesTestCase
   def test_health_check_message_creation
     message = Messages::HealthCheckMessage.new(
       from: "health_department",
-      check_type: "routine"
+      check_id: "health-check-#{SecureRandom.hex(4)}"
     )
 
     assert_equal "health_department", message.from
-    assert_equal "routine", message.check_type
+    assert message.check_id.start_with?("health-check-")
     
     puts "   Created HealthCheckMessage successfully"
   end
 
   def test_fire_dispatch_message_creation
     message = Messages::FireDispatchMessage.new(
-      incident_id: "fire-#{SecureRandom.hex(4)}",
+      from: "emergency_dispatch",
+      dispatch_id: SecureRandom.hex(4),
+      engines_assigned: ['Engine-1', 'Engine-2'],
       location: "123 Fire Test St",
-      fire_type: "structure",
-      severity: "high",
-      units_requested: 3
+      fire_type: "fire",
+      timestamp: Time.now.strftime('%Y-%m-%d %H:%M:%S')
     )
 
-    assert_equal "structure", message.fire_type  
-    assert_equal "high", message.severity
-    assert_equal 3, message.units_requested
+    assert_equal "fire", message.fire_type  
+    assert_equal "123 Fire Test St", message.location
+    assert_equal ['Engine-1', 'Engine-2'], message.engines_assigned
     
     puts "   Created FireDispatchMessage successfully"
   end
 
   def test_police_dispatch_message_creation
     message = Messages::PoliceDispatchMessage.new(
-      incident_id: "police-#{SecureRandom.hex(4)}",
+      from: "emergency_dispatch",
+      dispatch_id: SecureRandom.hex(4),
+      units_assigned: ["Unit-P101", "Unit-P102"],
       location: "456 Police Test Ave",
       incident_type: "theft",
-      priority: "medium", 
-      units_requested: 2
+      priority: "medium",
+      timestamp: Time.now.strftime('%Y-%m-%d %H:%M:%S')
     )
 
     assert_equal "theft", message.incident_type
     assert_equal "medium", message.priority
-    assert_equal 2, message.units_requested
+    assert_equal ["Unit-P101", "Unit-P102"], message.units_assigned
     
     puts "   Created PoliceDispatchMessage successfully"
   end
@@ -126,6 +131,7 @@ class TestMessages < CityServicesTestCase
   def test_message_serialization_removed
     # Verify that messages no longer have serializer (transport handles it now)
     message = Messages::Emergency911Message.new(
+      from: "test_caller",
       caller_location: "Test Location",
       emergency_type: "medical", 
       description: "Test"
@@ -146,6 +152,7 @@ class TestMessages < CityServicesTestCase
 
     # Test valid message
     valid_message = Messages::Emergency911Message.new(
+      from: "test_caller",
       caller_location: "Required Location",
       emergency_type: "fire",
       description: "Required description"  
