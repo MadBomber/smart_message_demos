@@ -16,7 +16,6 @@ module Messages
     DESC
 
     transport  SmartMessage::Transport::RedisTransport.new
-    serializer SmartMessage::Serializer::Json.new
 
     VALID_PRIORITY = %w[low medium high emergency]
     VALID_INCIDENT_TYPES = %w[robbery burglary theft assault vandalism suspicious_activity domestic_disturbance traffic_violation accident silent_alarm weapons_violation drug_offense public_disturbance trespassing fraud harassment stalking other]

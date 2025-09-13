@@ -9,15 +9,15 @@ module DogeVSM
         type: 'object',
         properties: {
           file_path: { type: 'string', description: 'Path to department YAML file to validate' },
-          template_path: { type: 'string', description: 'Path to template file (default: generic_department_sample.yml)' }
+          template_path: { type: 'string', description: 'Path to template file (default: generic_department.yml.example)' }
         },
         required: ['file_path']
       })
 
       def run(args)
         file_path = args[:file_path]
-        template_path = args[:template_path] || 'generic_department_sample.yml'
-        
+        template_path = args[:template_path] || 'generic_department.yml.example'
+
         unless File.exist?(file_path)
           return { valid: false, error: "File not found: #{file_path}" }
         end
@@ -29,9 +29,9 @@ module DogeVSM
         begin
           config = YAML.load_file(file_path)
           template_structure = load_template_structure(template_path)
-          
+
           validation_result = validate_structure(config, template_structure, file_path)
-          
+
           {
             valid: validation_result[:errors].empty?,
             file: file_path,
@@ -54,7 +54,7 @@ module DogeVSM
 
       def load_template_structure(template_path)
         template = YAML.load_file(template_path)
-        
+
         # Define required structure based on template
         {
           required_sections: %w[department capabilities message_types routing_rules message_actions action_configs logging],
@@ -149,7 +149,7 @@ module DogeVSM
       def calculate_completeness_score(config, template_structure)
         total_sections = template_structure[:required_sections].length + template_structure[:optional_sections].length
         present_sections = (template_structure[:required_sections] + template_structure[:optional_sections]).count { |section| config.key?(section) }
-        
+
         # Calculate percentage completeness
         (present_sections.to_f / total_sections * 100).round(1)
       end

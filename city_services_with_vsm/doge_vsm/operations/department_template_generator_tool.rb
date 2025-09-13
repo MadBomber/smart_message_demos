@@ -11,8 +11,8 @@ module DogeVSM
           department_name: { type: 'string', description: 'Name of the new department (e.g., animal_control)' },
           display_name: { type: 'string', description: 'Human-readable display name (e.g., Animal Control)' },
           description: { type: 'string', description: 'Brief description of department responsibilities' },
-          capabilities: { 
-            type: 'array', 
+          capabilities: {
+            type: 'array',
             items: { type: 'string' },
             description: 'List of department capabilities'
           },
@@ -21,7 +21,7 @@ module DogeVSM
             items: { type: 'string' },
             description: 'Keywords for emergency routing (e.g., animal, control, bite, stray)'
           },
-          template_path: { type: 'string', description: 'Path to template file (default: generic_department_sample.yml)' },
+          template_path: { type: 'string', description: 'Path to template file (default: generic_department.yml.example)' },
           output_path: { type: 'string', description: 'Output file path (default: {department_name}.yml)' },
           ai_enabled: { type: 'boolean', description: 'Enable AI analysis for this department (default: true)' }
         },
@@ -34,7 +34,7 @@ module DogeVSM
         description = args[:description]
         capabilities = args[:capabilities] || generate_default_capabilities(description)
         keywords = args[:keywords] || extract_keywords_from_text(description + ' ' + capabilities.join(' '))
-        template_path = args[:template_path] || 'generic_department_sample.yml'
+        template_path = args[:template_path] || 'generic_department.yml.example'
         output_path = args[:output_path] || "#{department_name}.yml"
         ai_enabled = args[:ai_enabled] != false
 
@@ -147,7 +147,7 @@ module DogeVSM
         if description.downcase.include?('inspect')
           base_capabilities << "Conduct safety inspections and assessments"
         end
-        
+
         if description.downcase.include?('maintain') || description.downcase.include?('repair')
           base_capabilities << "Perform maintenance and repair operations"
         end
@@ -173,10 +173,10 @@ module DogeVSM
       end
 
       def generate_ai_context(department_name, description)
-        "You are the #{department_name.gsub('_', ' ')} department. Your role is to #{description.downcase} 
-    Always prioritize citizen safety and efficient service delivery. When processing 
-    emergency calls, assess the situation quickly and determine if your department 
-    has the appropriate resources and expertise to respond effectively. If not, 
+        "You are the #{department_name.gsub('_', ' ')} department. Your role is to #{description.downcase}
+    Always prioritize citizen safety and efficient service delivery. When processing
+    emergency calls, assess the situation quickly and determine if your department
+    has the appropriate resources and expertise to respond effectively. If not,
     escalate to the appropriate department immediately."
       end
 
@@ -185,7 +185,7 @@ module DogeVSM
         {
           publishes: [
             "  - #{prefix}_service_complete",
-            "  - #{prefix}_status_update", 
+            "  - #{prefix}_status_update",
             "  - #{prefix}_escalation_request"
           ].join("\n")
         }
@@ -202,13 +202,13 @@ module DogeVSM
             - update_service_records
             - notify_citizen
             publish_response: true
-          
+
           handle_#{prefix}_status_update:
             response_template: "📊 #{upper_name}: Status update received and processed"
             additional_actions:
             - log_status_change
             publish_response: false
-          
+
           handle_#{prefix}_escalation_request:
             response_template: "⚠️ #{upper_name}: Escalating to {{target_department}}"
             additional_actions:
@@ -222,10 +222,10 @@ module DogeVSM
       def validate_generated_file(file_path, template_path)
         # Use existing validation logic
         config = YAML.load_file(file_path)
-        
+
         required_sections = %w[department capabilities message_types routing_rules message_actions action_configs logging]
         errors = []
-        
+
         required_sections.each do |section|
           unless config.key?(section)
             errors << "Missing required section: #{section}"
