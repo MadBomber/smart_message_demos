@@ -139,6 +139,7 @@ class Operations < VSM::Operations
 
   def publish_response(response, action_config, message_data)
     logger.info("📤 Publishing response message")
+    puts "📤 Publishing response message: #{response}"
 
     # Could publish response message here
     # For now, just log it
