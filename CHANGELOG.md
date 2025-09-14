@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2025-09-13
+### Fixed
+- **StatusLine Module Refactoring** - Improved maintainability and reliability
+  - Refactored `Common::StatusLine` mixin from ncurses back to ANSI sequences for better compatibility
+  - Added thread-safe status updates with mutex protection
+  - Improved code organization with descriptive helper methods for ANSI sequences
+  - Enhanced error handling with graceful fallbacks
+  - Added terminal resize handling capability
+  - Fixed `@program_name` initialization to correctly use ARGV[0] in generic_department
+
+- **Department Uniqueness Test** - Resolved duplicate department files
+  - Removed duplicate YAML configurations for departments with Ruby implementations:
+    - Deleted `fire_department.yml` (duplicate of `fire_department.rb`)
+    - Deleted `health_department.yml` (duplicate of `health_department.rb`)
+    - Deleted `police_department.yml` (duplicate of `police_department.rb`)
+  - Removed `test_department.yml` from main directory (kept only in tests/fixtures)
+  - Test now passes: 16 unique departments (4 Ruby + 12 YAML) with 0 duplicates
+
+### Changed
+- **Test Suite Status** - Department discovery tests now fully passing
+  - test_department_discovery.rb: 7 tests, 20 assertions ✅ (previously 1 failure)
+  - All 44 tests across the suite continue to pass with 110 assertions
+
 ## 2025-09-12
 ### Added
 - **Test Infrastructure Fixes** - Comprehensive test suite repair and validation
