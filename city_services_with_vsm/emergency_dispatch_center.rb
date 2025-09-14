@@ -485,6 +485,19 @@ class EmergencyDispatchCenter
       else
         logger.info("Forwarded call #{call_id} to Police Department")
       end
+    else
+      # Generic department routing - forward Emergency911Message to any department
+      forward_call = Messages::Emergency911Message.new(**call.to_h.merge(
+                                                         call_id: call_id,
+                                                         from: '911-dispatch',
+                                                         to: department
+                                                       ))
+      forward_call._sm_header.from = '911-dispatch'
+      forward_call._sm_header.to   = department
+      forward_call.publish
+      
+      logger.info("Forwarded call #{call_id} to #{department} (generic department)")
+      puts "🚨 Dispatching to #{department}: #{call.emergency_type} at #{call.caller_location}"
     end
 
     @active_calls[call_id][:dispatched_to] << department if @active_calls[call_id]

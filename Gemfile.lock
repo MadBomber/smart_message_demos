@@ -56,6 +56,7 @@ GEM
       fiber-annotation
       fiber-local (~> 1.1)
       json
+    curses (1.5.3)
     date (3.4.1)
     digest (3.2.0)
     drb (2.2.3)
@@ -84,7 +85,7 @@ GEM
     io-stream (0.10.0)
     json (2.13.2)
     logger (1.7.0)
-    lumberjack (1.4.1)
+    lumberjack (1.4.2)
     marcel (1.0.4)
     metrics (0.15.0)
     minitest (5.25.5)
@@ -187,6 +188,7 @@ DEPENDENCIES
   awesome_print
   bundler
   colorize
+  curses
   digest
   fileutils
   io-console
