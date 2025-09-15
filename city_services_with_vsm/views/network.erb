@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Services Network Visualization</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0a;
+            color: #f0f0f0;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            color: #f0f0f0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            color: #3498db;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(52, 152, 219, 0.1);
+            transition: background 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .nav-links a.active {
+            background: rgba(52, 152, 219, 0.3);
+            font-weight: bold;
+        }
+
+        #network-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0a 100%);
+        }
+
+        #network-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 1600px;
+            max-height: 900px;
+        }
+
+        .department-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .department-node:hover {
+            filter: brightness(1.3);
+        }
+
+        .department-node.highlight {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 0, 0.8));
+            animation: pulse 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .message-line {
+            stroke: #00ff00;
+            stroke-width: 3;
+            fill: none;
+            opacity: 0.8;
+            stroke-dasharray: 10, 5;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -15; }
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #666;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip h4 {
+            color: #3498db;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .tooltip .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+            color: #ccc;
+        }
+
+        .tooltip .metric-value {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 12px;
+        }
+
+        .legend h3 {
+            color: #f0f0f0;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            color: #aaa;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .controls-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 280px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .controls-panel h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .stat-value {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .message-filters {
+            margin-top: 20px;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filter-btn {
+            padding: 5px 10px;
+            border: 1px solid #555;
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .message-type-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .message-type {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .message-type input[type="checkbox"] {
+            margin-right: 8px;
+            accent-color: #3498db;
+        }
+
+        .message-type label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .message-count {
+            color: #888;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 City Services Network Visualization</h1>
+        <div class="nav-links">
+            <a href="/">Service Launcher</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/network" class="active">Network View</a>
+            <a href="/analytics">Analytics</a>
+        </div>
+    </div>
+
+    <div id="network-container">
+        <svg id="network-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7"
+                    refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#00ff00" />
+                </marker>
+
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <g id="connections"></g>
+            <g id="nodes"></g>
+        </svg>
+    </div>
+
+    <div class="legend">
+        <h3>Service Types</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span>Departments</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2ecc71;"></div>
+            <span>Infrastructure</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>Actors</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>Monitors</span>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <h3>Network Stats</h3>
+        <div class="stat-item">
+            <span>Active Services:</span>
+            <span class="stat-value" id="active-count">0</span>
+        </div>
+        <div class="stat-item">
+            <span>Total Messages:</span>
+            <span class="stat-value" id="message-count">0</span>
+        </div>
+        <div class="stat-item">
+            <span>Active Connections:</span>
+            <span class="stat-value" id="connection-count">0</span>
+        </div>
+
+        <div class="message-filters">
+            <h3>Message Filters</h3>
+            <div class="filter-controls">
+                <button class="filter-btn" onclick="selectAllMessages()">Select All</button>
+                <button class="filter-btn" onclick="deselectAllMessages()">Deselect All</button>
+            </div>
+            <div class="message-type-list" id="message-types">
+                <!-- Message types will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        const svg = document.getElementById('network-svg');
+        const nodesGroup = document.getElementById('nodes');
+        const connectionsGroup = document.getElementById('connections');
+        const tooltip = document.getElementById('tooltip');
+
+        let services = {};
+        let activeConnections = new Map();
+        let messageCount = 0;
+        let enabledMessageTypes = new Set();
+        let messageTypeCounts = {};
+
+        // Service type colors
+        const serviceColors = {
+            departments: '#3498db',
+            infrastructure: '#2ecc71',
+            actors: '#e74c3c',
+            monitors: '#f39c12'
+        };
+
+        // Department emoji icons
+        const departmentIcons = {
+            emergency_dispatch: '🚨',
+            police_department: '👮',
+            fire_department: '🚒',
+            health_department: '🏥',
+            city_council: '🏛️',
+            animal_control_department: '🐕',
+            parks_and_recreation_department: '🌳',
+            public_works_department: '🔧',
+            transportation_department: '🚌',
+            utilities_department: '💡',
+            redis_monitor: '📊',
+            redis_stats: '📈',
+            house: '🏠',
+            local_bank: '🏦',
+            citizen: '👤',
+            default: '📍'
+        };
+
+        function createDepartmentNode(service, x, y) {
+            const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            nodeGroup.setAttribute('class', 'department-node');
+            nodeGroup.setAttribute('id', `node-${service.name}`);
+            nodeGroup.setAttribute('transform', `translate(${x}, ${y})`);
+
+            // Determine color based on service type
+            const color = serviceColors[service.type] || '#666';
+
+            // Outer circle (border)
+            const outerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            outerCircle.setAttribute('r', '35');
+            outerCircle.setAttribute('fill', 'none');
+            outerCircle.setAttribute('stroke', color);
+            outerCircle.setAttribute('stroke-width', '3');
+            outerCircle.setAttribute('filter', 'url(#glow)');
+
+            // Inner circle (background)
+            const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            innerCircle.setAttribute('r', '32');
+            innerCircle.setAttribute('fill', 'rgba(0, 0, 0, 0.8)');
+
+            // Icon text
+            const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            icon.setAttribute('text-anchor', 'middle');
+            icon.setAttribute('dominant-baseline', 'middle');
+            icon.setAttribute('font-size', '24');
+            icon.textContent = departmentIcons[service.name] || departmentIcons.default;
+
+            // Service name label
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('y', '50');
+            label.setAttribute('font-size', '12');
+            label.setAttribute('fill', '#ccc');
+            label.textContent = service.display_name || service.name;
+
+            // Add hover events
+            nodeGroup.addEventListener('mouseenter', (e) => showTooltip(e, service));
+            nodeGroup.addEventListener('mouseleave', hideTooltip);
+
+            nodeGroup.appendChild(outerCircle);
+            nodeGroup.appendChild(innerCircle);
+            nodeGroup.appendChild(icon);
+            nodeGroup.appendChild(label);
+
+            return nodeGroup;
+        }
+
+        function updateNetworkLayout() {
+            const svgRect = svg.getBoundingClientRect();
+            const centerX = svgRect.width / 2;
+            const centerY = svgRect.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.7;
+
+            // Only show running services
+            const runningServices = Object.values(services).filter(service => service.running);
+            const angleStep = (2 * Math.PI) / Math.max(runningServices.length, 1);
+
+            // Clear existing nodes
+            nodesGroup.innerHTML = '';
+
+            runningServices.forEach((service, index) => {
+                const angle = index * angleStep - Math.PI / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                service.x = x;
+                service.y = y;
+
+                const node = createDepartmentNode(service, x, y);
+                nodesGroup.appendChild(node);
+            });
+
+            updateStats();
+        }
+
+        function drawMessageLine(fromService, toService) {
+            if (!services[fromService] || !services[toService]) return;
+
+            const from = services[fromService];
+            const to = services[toService];
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('class', 'message-line');
+            line.setAttribute('x1', from.x);
+            line.setAttribute('y1', from.y);
+            line.setAttribute('x2', to.x);
+            line.setAttribute('y2', to.y);
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+
+            connectionsGroup.appendChild(line);
+
+            // Highlight sending node
+            const fromNode = document.getElementById(`node-${fromService}`);
+            if (fromNode) {
+                fromNode.classList.add('highlight');
+                setTimeout(() => fromNode.classList.remove('highlight'), 500);
+            }
+
+            // Remove line after animation
+            setTimeout(() => {
+                connectionsGroup.removeChild(line);
+            }, 3000);
+
+            messageCount++;
+            updateStats();
+        }
+
+        function showTooltip(event, service) {
+            const metrics = service.metrics || { messages_sent: 0, messages_received: 0, uptime: 0 };
+
+            tooltip.innerHTML = `
+                <h4>${service.display_name || service.name}</h4>
+                <div class="metric">
+                    <span>Status:</span>
+                    <span class="metric-value">${service.running ? 'Running' : 'Stopped'}</span>
+                </div>
+                <div class="metric">
+                    <span>Messages Sent:</span>
+                    <span class="metric-value">${metrics.messages_sent}</span>
+                </div>
+                <div class="metric">
+                    <span>Messages Received:</span>
+                    <span class="metric-value">${metrics.messages_received}</span>
+                </div>
+                <div class="metric">
+                    <span>Uptime:</span>
+                    <span class="metric-value">${formatUptime(metrics.uptime)}</span>
+                </div>
+            `;
+
+            tooltip.style.display = 'block';
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY + 10 + 'px';
+        }
+
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
+
+        function formatUptime(seconds) {
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+        }
+
+        function updateStats() {
+            document.getElementById('active-count').textContent = Object.values(services).filter(s => s.running).length;
+            document.getElementById('message-count').textContent = messageCount;
+            document.getElementById('connection-count').textContent = connectionsGroup.children.length;
+        }
+
+        function processMessage(data) {
+            try {
+                // Try to extract sender and receiver from message content
+                let from = null;
+                let to = null;
+                let messageType = null;
+
+                if (data.channel && data.message) {
+                    // Extract message type from the message content
+                    const messageTypeMatch = data.message.match(/"type":\s*"([^"]+)"/);
+                    if (messageTypeMatch) {
+                        messageType = messageTypeMatch[1];
+
+                        // Update message type count
+                        messageTypeCounts[messageType] = (messageTypeCounts[messageType] || 0) + 1;
+                        updateMessageTypeDisplay();
+
+                        // Only process if this message type is enabled
+                        if (!enabledMessageTypes.has(messageType)) {
+                            return;
+                        }
+                    }
+
+                    // Look for SmartMessage headers
+                    if (data.message.includes('from:') && data.message.includes('to:')) {
+                        const fromMatch = data.message.match(/from:\s*(\S+)/);
+                        const toMatch = data.message.match(/to:\s*(\S+)/);
+
+                        if (fromMatch) from = fromMatch[1];
+                        if (toMatch) to = toMatch[1];
+                    }
+
+                    // Draw connection if we have both and both services are running
+                    if (from && to && from !== to &&
+                        services[from] && services[from].running &&
+                        services[to] && services[to].running) {
+                        drawMessageLine(from, to);
+                    }
+                }
+            } catch (e) {
+                console.error('Error processing message for network:', e);
+            }
+        }
+
+        // Connect to Server-Sent Events for real-time updates
+        const eventSource = new EventSource('/network/stream');
+
+        eventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.services) {
+                    // Update service list
+                    services = data.services;
+                    updateNetworkLayout();
+                } else if (data.type === 'message') {
+                    // Process message for visualization
+                    processMessage(data);
+                }
+            } catch (e) {
+                console.error('Error parsing SSE data:', e);
+            }
+        };
+
+        eventSource.onerror = function() {
+            console.error('SSE connection error');
+        };
+
+        // Initial load - use the comprehensive services/status endpoint
+        fetch('/services/status')
+            .then(response => response.json())
+            .then(data => {
+                Object.keys(data).forEach(serviceName => {
+                    services[serviceName] = {
+                        name: data[serviceName].name,
+                        display_name: data[serviceName].display_name,
+                        type: data[serviceName].type,
+                        running: data[serviceName].running,
+                        metrics: data[serviceName].metrics || {}
+                    };
+                });
+                updateNetworkLayout();
+            })
+            .catch(error => {
+                console.error('Error fetching service status:', error);
+                // If the new endpoint fails, fall back to empty state and rely on SSE
+                updateNetworkLayout();
+            });
+
+        // Initialize message type filters
+        function initializeMessageTypes() {
+            const messageTypes = [
+                'DepartmentAnnouncementMessage',
+                'Emergency911Message',
+                'EmergencyResolvedMessage',
+                'FireDispatchMessage',
+                'FireEmergencyMessage',
+                'HealthCheckMessage',
+                'HealthStatusMessage',
+                'PoliceDispatchMessage',
+                'ServiceRequestMessage',
+                'SilentAlarmMessage'
+            ];
+
+            const container = document.getElementById('message-types');
+            container.innerHTML = '';
+
+            messageTypes.forEach(messageType => {
+                const div = document.createElement('div');
+                div.className = 'message-type';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `msg-${messageType}`;
+                checkbox.checked = true; // Start with all enabled
+                checkbox.addEventListener('change', updateMessageTypeFilter);
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = messageType.replace(/([A-Z])/g, ' $1').trim();
+
+                const count = document.createElement('span');
+                count.className = 'message-count';
+                count.id = `count-${messageType}`;
+                count.textContent = '(0)';
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                div.appendChild(count);
+                container.appendChild(div);
+
+                // Enable all message types initially
+                enabledMessageTypes.add(messageType);
+            });
+        }
+
+        function updateMessageTypeFilter() {
+            enabledMessageTypes.clear();
+
+            document.querySelectorAll('#message-types input[type="checkbox"]').forEach(checkbox => {
+                if (checkbox.checked) {
+                    const messageType = checkbox.id.replace('msg-', '');
+                    enabledMessageTypes.add(messageType);
+                }
+            });
+        }
+
+        function updateMessageTypeDisplay() {
+            Object.keys(messageTypeCounts).forEach(messageType => {
+                const countElement = document.getElementById(`count-${messageType}`);
+                if (countElement) {
+                    countElement.textContent = `(${messageTypeCounts[messageType]})`;
+                }
+            });
+        }
+
+        function selectAllMessages() {
+            document.querySelectorAll('#message-types input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateMessageTypeFilter();
+        }
+
+        function deselectAllMessages() {
+            document.querySelectorAll('#message-types input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateMessageTypeFilter();
+        }
+
+        // Initialize message type filters on load
+        initializeMessageTypes();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (Object.keys(services).length > 0) {
+                updateNetworkLayout();
+            }
+        });
+    </script>
+</body>
+</html>

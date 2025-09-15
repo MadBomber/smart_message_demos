@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Portal - Emergency Reporting</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1em;
+        }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .emergency-form {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        .required {
+            color: #e74c3c;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+        textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .emergency-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .emergency-type {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .emergency-type:hover {
+            border-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        .emergency-type input[type="radio"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        .emergency-type.selected {
+            border-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        .submit-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .submit-btn:hover {
+            background: #c0392b;
+        }
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .emergency-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .emergency-info h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .emergency-info p {
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        .location-hint {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Emergency Reporting Portal</h1>
+            <p class="subtitle">Report emergencies directly to city services</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="/">Service Launcher</a>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/analytics">Analytics</a>
+        </div>
+
+        <div class="emergency-info">
+            <h3>⚠️ Important Notice</h3>
+            <p><strong>For immediate life-threatening emergencies, call 911 directly.</strong></p>
+            <p>This portal is for non-immediate emergencies and service requests that can be processed through the city's digital dispatch system.</p>
+        </div>
+
+        <form class="emergency-form" id="emergency-form">
+            <div class="form-group">
+                <label for="reporter_name">Your Name <span class="required">*</span></label>
+                <input type="text" id="reporter_name" name="reporter_name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Emergency Type <span class="required">*</span></label>
+                <div class="emergency-types">
+                    <div class="emergency-type" onclick="selectEmergencyType('fire')">
+                        <input type="radio" name="emergency_type" value="fire" id="type_fire">
+                        <label for="type_fire">🔥 Fire</label>
+                    </div>
+                    <div class="emergency-type" onclick="selectEmergencyType('medical')">
+                        <input type="radio" name="emergency_type" value="medical" id="type_medical">
+                        <label for="type_medical">🚑 Medical</label>
+                    </div>
+                    <div class="emergency-type" onclick="selectEmergencyType('crime')">
+                        <input type="radio" name="emergency_type" value="crime" id="type_crime">
+                        <label for="type_crime">🚔 Crime</label>
+                    </div>
+                    <div class="emergency-type" onclick="selectEmergencyType('accident')">
+                        <input type="radio" name="emergency_type" value="accident" id="type_accident">
+                        <label for="type_accident">🚗 Accident</label>
+                    </div>
+                    <div class="emergency-type" onclick="selectEmergencyType('utility')">
+                        <input type="radio" name="emergency_type" value="utility" id="type_utility">
+                        <label for="type_utility">⚡ Utility</label>
+                    </div>
+                    <div class="emergency-type" onclick="selectEmergencyType('other')">
+                        <input type="radio" name="emergency_type" value="other" id="type_other">
+                        <label for="type_other">❓ Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location <span class="required">*</span></label>
+                <input type="text" id="location" name="location" placeholder="Street address or intersection" required>
+                <div class="location-hint">Be as specific as possible (e.g., "123 Main St" or "Main St & Oak Ave")</div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description <span class="required">*</span></label>
+                <textarea id="description" name="description" placeholder="Describe the emergency situation in detail..." required></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submit-btn">🚨 Report Emergency</button>
+
+            <div id="status-message" class="status-message"></div>
+        </form>
+    </div>
+
+    <script>
+        function selectEmergencyType(type) {
+            // Clear previous selections
+            document.querySelectorAll('.emergency-type').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Select the clicked type
+            const selectedElement = document.querySelector(`#type_${type}`).closest('.emergency-type');
+            selectedElement.classList.add('selected');
+            document.querySelector(`#type_${type}`).checked = true;
+        }
+
+        document.getElementById('emergency-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const statusMessage = document.getElementById('status-message');
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = '📤 Reporting...';
+
+            // Get form data
+            const formData = new FormData(this);
+
+            // Submit to server
+            fetch('/citizen/emergency', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusMessage.style.display = 'block';
+                statusMessage.className = `status-message ${data.success ? 'success' : 'error'}`;
+
+                if (data.success) {
+                    statusMessage.innerHTML = `
+                        <strong>✅ Emergency Reported Successfully!</strong><br>
+                        Emergency ID: ${data.emergency_id}<br>
+                        Your report has been sent to the appropriate emergency services.
+                    `;
+                    // Reset form
+                    this.reset();
+                    document.querySelectorAll('.emergency-type').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                } else {
+                    statusMessage.innerHTML = `
+                        <strong>❌ Error</strong><br>
+                        ${data.message}
+                    `;
+                }
+            })
+            .catch(error => {
+                statusMessage.style.display = 'block';
+                statusMessage.className = 'status-message error';
+                statusMessage.innerHTML = `
+                    <strong>❌ Network Error</strong><br>
+                    Unable to submit report. Please try again.
+                `;
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚨 Report Emergency';
+            });
+        });
+
+        // Auto-hide status message after 10 seconds
+        setInterval(() => {
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage.style.display === 'block') {
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 10000);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,3 +1,18 @@
+PATH
+  remote: ../../smart_message
+  specs:
+    smart_message (0.0.17)
+      activesupport
+      async
+      async-redis
+      breaker_machines
+      colorize
+      concurrent-ruby
+      hashie
+      lumberjack
+      redis
+      zeitwerk
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -57,19 +72,11 @@ GEM
       fiber-local (~> 1.1)
       json
     date (3.4.1)
-    digest (3.2.0)
+    debug (1.11.0)
+      irb (~> 1.10)
+      reline (>= 0.3.8)
     drb (2.2.3)
-    event_stream_parser (1.0.0)
-    faraday (2.13.4)
-      faraday-net_http (>= 2.0, < 3.5)
-      json
-      logger
-    faraday-multipart (1.1.1)
-      multipart-post (~> 2.0)
-    faraday-net_http (3.4.1)
-      net-http (>= 0.5.0)
-    faraday-retry (2.3.2)
-      faraday (~> 2.0)
+    erb (5.0.2)
     fiber-annotation (0.2.0)
     fiber-local (1.1.0)
       fiber-storage
@@ -82,10 +89,13 @@ GEM
     io-endpoint (0.15.2)
     io-event (1.14.0)
     io-stream (0.10.0)
+    irb (1.15.2)
+      pp (>= 0.6.0)
+      rdoc (>= 4.0.0)
+      reline (>= 0.4.2)
     json (2.13.2)
     logger (1.7.0)
     lumberjack (1.4.2)
-    marcel (1.0.4)
     metrics (0.15.0)
     minitest (5.25.5)
     minitest-reporters (1.7.1)
@@ -93,12 +103,12 @@ GEM
       builder
       minitest (>= 5.0)
       ruby-progressbar
-    multipart-post (2.4.1)
-    net-http (0.6.0)
-      uri
-    optparse (0.6.0)
-    pastel (0.8.0)
-      tty-color (~> 0.5)
+    mustermann (3.0.4)
+      ruby2_keywords (~> 0.0.1)
+    nio4r (2.7.4)
+    pp (0.6.2)
+      prettyprint
+    prettyprint (0.2.0)
     protocol-hpack (1.5.1)
     protocol-http (0.53.0)
     protocol-http1 (0.35.1)
@@ -107,10 +117,25 @@ GEM
       protocol-hpack (~> 1.4)
       protocol-http (~> 0.47)
     protocol-redis (0.12.0)
+    psych (5.2.6)
+      date
+      stringio
+    puma (7.0.3)
+      nio4r (~> 2.0)
     rack (3.2.1)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.1.1)
+      base64 (>= 0.1.0)
+      rack (>= 3.0.0)
+    rackup (2.2.1)
+      rack (>= 3)
     rake (13.3.0)
-    readline (0.0.4)
-      reline
+    rdoc (6.14.2)
+      erb
+      psych (>= 4.0.0)
     redis (5.4.1)
       redis-client (>= 0.22.0)
     redis-client (0.25.3)
@@ -118,63 +143,26 @@ GEM
     reline (0.6.2)
       io-console (~> 0.5)
     ruby-progressbar (1.13.0)
-    ruby_llm (1.8.0)
-      base64
-      event_stream_parser (~> 1)
-      faraday (>= 1.10.0)
-      faraday-multipart (>= 1)
-      faraday-net_http (>= 1)
-      faraday-retry (>= 1)
-      marcel (~> 1.0)
-      zeitwerk (~> 2)
+    ruby2_keywords (0.0.5)
     securerandom (0.4.1)
-    set (1.1.2)
-    smart_message (0.0.17)
-      activesupport
-      async
-      async-redis
-      breaker_machines
-      colorize
-      concurrent-ruby
-      hashie
-      lumberjack
-      redis
-      zeitwerk
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
+      mustermann (~> 3.0)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.1.1)
+      rack-session (>= 2.0.0, < 3)
+      tilt (~> 2.0)
     state_machines (0.100.2)
-    strings (0.2.1)
-      strings-ansi (~> 0.2)
-      unicode-display_width (>= 1.5, < 3.0)
-      unicode_utils (~> 1.4)
-    strings-ansi (0.2.0)
-    time (0.4.1)
-      date
+    stringio (3.1.7)
+    tilt (2.6.1)
     traces (0.18.2)
-    tty-box (0.7.0)
-      pastel (~> 0.8)
-      strings (~> 0.2.0)
-      tty-cursor (~> 0.7)
-    tty-color (0.6.0)
-    tty-cursor (0.7.1)
-    tty-prompt (0.23.1)
-      pastel (~> 0.8)
-      tty-reader (~> 0.8)
-    tty-reader (0.9.0)
-      tty-cursor (~> 0.7)
-      tty-screen (~> 0.8)
-      wisper (~> 2.0)
-    tty-screen (0.8.2)
-    tty-spinner (0.9.3)
-      tty-cursor (~> 0.7)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    unicode-display_width (2.6.0)
-    unicode_utils (1.4.0)
     uri (1.0.3)
     vsm (0.1.0)
       async (~> 2.27)
       async-http (~> 0.90)
       rack (~> 3.2)
-    wisper (2.0.1)
     yaml (0.4.0)
     zeitwerk (2.7.3)
 
@@ -183,30 +171,20 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  async
   awesome_print
-  bundler
-  colorize
-  digest
+  bigdecimal
+  debug
   fileutils
-  io-console
   json
-  minitest
+  minitest (~> 5.25)
   minitest-reporters
-  optparse
+  puma (~> 7.0)
+  rackup
   rake
-  readline
-  redis
-  ruby_llm
+  redis (~> 5.4)
   securerandom
-  set
-  smart_message
-  time
-  tty-box
-  tty-cursor
-  tty-prompt
-  tty-screen
-  tty-spinner
+  sinatra (~> 4.1)
+  smart_message!
   vsm
   yaml
 

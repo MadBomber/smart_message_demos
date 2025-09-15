@@ -17,6 +17,10 @@ rescue LoadError
   puts "ℹ️  minitest-reporters not available, using default output"
 end
 
+
+
+
+
 # Add project root to load path
 project_root = File.expand_path('../..', __dir__)
 $LOAD_PATH.unshift(File.join(project_root, 'lib')) if File.directory?(File.join(project_root, 'lib'))
@@ -53,7 +57,7 @@ module TestHelpers
   def create_test_service_request(override_params = {})
     defaults = {
       from: "test-dispatcher",
-      to: "city_council", 
+      to: "city_council",
       request_id: SecureRandom.uuid,
       requesting_service: "test-service",
       emergency_type: "test",
@@ -61,7 +65,7 @@ module TestHelpers
       urgency: "medium",
       original_call_id: "test-#{SecureRandom.hex(4)}"
     }
-    
+
     final_params = defaults.merge(override_params)
     Messages::ServiceRequestMessage.new(**final_params)
   end
@@ -75,7 +79,7 @@ module TestHelpers
     # Cleanup
   end
 
-  # Timeout helper for async operations  
+  # Timeout helper for async operations
   def wait_for_condition(timeout: 5, &block)
     Timeout.timeout(timeout) do
       loop do
@@ -92,7 +96,7 @@ module TestHelpers
     assert File.exist?(path), message || "Expected file #{path} to exist"
   end
 
-  # Directory existence assertion  
+  # Directory existence assertion
   def assert_directory_exists(path, message = nil)
     assert File.directory?(path), message || "Expected directory #{path} to exist"
   end

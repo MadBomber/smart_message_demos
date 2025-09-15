@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Console - <%= params[:service] %></title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #f0f0f0;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 20px;
+            border-radius: 10px;
+        }
+        h1 {
+            font-size: 1.5em;
+            color: #f0f0f0;
+        }
+        .service-name {
+            color: #3498db;
+        }
+        .nav-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(52, 152, 219, 0.1);
+            transition: background 0.3s;
+        }
+        .nav-links a:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+        .console-container {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            height: calc(100vh - 140px);
+            display: flex;
+            flex-direction: column;
+        }
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        .console-title {
+            color: #2ecc71;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .console-controls button {
+            background: #333;
+            color: #f0f0f0;
+            border: 1px solid #555;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .console-controls button:hover {
+            background: #444;
+        }
+        .console-controls button.active {
+            background: #2ecc71;
+            color: #000;
+        }
+        .console-output {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px;
+            background: #000;
+            border-radius: 5px;
+        }
+        .console-line {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 2px 0;
+        }
+        .console-line.stdout {
+            color: #0f0;
+        }
+        .console-line.stderr {
+            color: #f44;
+        }
+        .console-line .timestamp {
+            color: #666;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #666;
+        }
+        .status-indicator.connected {
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+        .status-indicator.error {
+            background: #e74c3c;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+        .no-output {
+            color: #666;
+            text-align: center;
+            margin-top: 50px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📟 Console Output: <span class="service-name"><%= params[:service] %></span></h1>
+        <div class="nav-links">
+            <a href="/">Service Launcher</a>
+            <a href="/dashboard">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="console-container">
+        <div class="console-header">
+            <div class="console-title">
+                <span id="status-indicator" class="status-indicator"></span>
+                <span id="connection-status">Connecting...</span>
+            </div>
+            <div class="console-controls">
+                <button onclick="toggleScroll()" id="scroll-btn" class="active">Auto-scroll</button>
+                <button onclick="clearConsole()">Clear</button>
+                <button onclick="downloadLog()">Download</button>
+            </div>
+        </div>
+        <div id="console-output" class="console-output">
+            <div class="no-output">Waiting for output...</div>
+        </div>
+    </div>
+
+    <script>
+        const serviceName = '<%= params[:service] %>';
+        let autoScroll = true;
+        let allLines = [];
+
+        const output = document.getElementById('console-output');
+        const statusIndicator = document.getElementById('status-indicator');
+        const connectionStatus = document.getElementById('connection-status');
+
+        // Load recent console output first
+        fetch(`/console/${serviceName}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.output && data.output.length > 0) {
+                    output.innerHTML = '';
+                    data.output.forEach(addLine);
+                }
+            });
+
+        // Connect to live stream
+        const eventSource = new EventSource(`/console/${serviceName}/stream`);
+
+        eventSource.onopen = function() {
+            statusIndicator.classList.add('connected');
+            connectionStatus.textContent = 'Connected - Live output';
+        };
+
+        eventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'connected') {
+                    output.innerHTML = '';
+                    statusIndicator.classList.add('connected');
+                    connectionStatus.textContent = 'Connected - Streaming live';
+                } else if (data.type === 'disconnected') {
+                    statusIndicator.classList.remove('connected');
+                    connectionStatus.textContent = 'Service stopped';
+                } else if (data.type === 'error') {
+                    statusIndicator.classList.add('error');
+                    connectionStatus.textContent = 'Error: ' + data.message;
+                } else {
+                    // Regular output line
+                    addLine(data);
+                }
+            } catch (e) {
+                console.error('Error parsing message:', e);
+            }
+        };
+
+        eventSource.onerror = function() {
+            statusIndicator.classList.remove('connected');
+            statusIndicator.classList.add('error');
+            connectionStatus.textContent = 'Connection lost - Retrying...';
+        };
+
+        function addLine(lineData) {
+            allLines.push(lineData);
+
+            const lineDiv = document.createElement('div');
+            lineDiv.className = `console-line ${lineData.type}`;
+
+            // Always show timestamp, format line as plain text
+            const time = new Date(lineData.timestamp * 1000).toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            // Extract the actual text from line data
+            let lineText = '';
+            if (typeof lineData.line === 'string') {
+                lineText = lineData.line;
+            } else if (typeof lineData.line === 'object') {
+                // If it's JSON, just show it as formatted text
+                lineText = JSON.stringify(lineData.line);
+            }
+
+            // Create text content with timestamp prefix
+            const textContent = `[${time}] ${lineText}`;
+            lineDiv.textContent = textContent;  // Use textContent to avoid HTML injection
+
+            output.appendChild(lineDiv);
+
+            // Keep only last 2000 lines in DOM for performance
+            while (output.children.length > 2000) {
+                output.removeChild(output.firstChild);
+            }
+
+            if (autoScroll) {
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+
+        function toggleScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('scroll-btn').classList.toggle('active', autoScroll);
+            if (autoScroll) {
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+
+        function clearConsole() {
+            allLines = [];
+            output.innerHTML = '<div class="no-output">Console cleared</div>';
+        }
+
+        function downloadLog() {
+            const text = allLines.map(line => {
+                const time = new Date(line.timestamp * 1000).toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                let lineText = '';
+                if (typeof line.line === 'string') {
+                    lineText = line.line;
+                } else if (typeof line.line === 'object') {
+                    lineText = JSON.stringify(line.line);
+                }
+
+                return `[${time}] [${line.type.toUpperCase()}] ${lineText}`;
+            }).join('\n');
+
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${serviceName}_console_${Date.now()}.log`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

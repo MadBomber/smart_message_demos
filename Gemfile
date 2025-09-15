@@ -27,7 +27,7 @@ gem 'minitest-reporters'        # Create customizable Minitest output formats
 gem 'rake'                      # Rake is a Make-like program implemented in Ruby
 gem 'bundler'                   # The best way to manage your application's dependencies
 
-
+# gem 'minitest-reporters-llm'
 
 # Additional system gems required by demos
 gem 'io-console'                # Console I/O operations
