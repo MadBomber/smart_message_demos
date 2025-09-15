@@ -250,6 +250,7 @@
                             <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
                             <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
                             <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                            <button class="logs" onclick="openConsole('<%= service[:name] %>')">📟</button>
                         </div>
                     </div>
                 <% end %>
@@ -271,6 +272,7 @@
                             <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
                             <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
                             <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                            <button class="logs" onclick="openConsole('<%= service[:name] %>')">📟</button>
                         </div>
                     </div>
                 <% end %>
@@ -292,6 +294,7 @@
                             <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
                             <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
                             <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                            <button class="logs" onclick="openConsole('<%= service[:name] %>')">📟</button>
                         </div>
                     </div>
                 <% end %>
@@ -313,6 +316,7 @@
                             <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
                             <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
                             <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                            <button class="logs" onclick="openConsole('<%= service[:name] %>')">📟</button>
                         </div>
                     </div>
                 <% end %>
@@ -457,6 +461,10 @@
 
         function closeLogs() {
             document.getElementById('logs-modal').style.display = 'none';
+        }
+
+        function openConsole(serviceName) {
+            window.open('/console/' + serviceName, '_blank');
         }
 
         // Update status every 2 seconds

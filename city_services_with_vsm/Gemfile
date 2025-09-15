@@ -1,0 +1,36 @@
+# Gemfile for City Services with VSM demonstration
+
+source 'https://rubygems.org'
+
+ruby '~> 3.4'
+
+# Core dependencies
+gem 'smart_message', path: '../../smart_message'
+gem 'vsm'
+
+# Web framework
+gem 'sinatra', '~> 4.1'
+gem 'puma', '~> 7.0'
+gem 'rackup'
+
+# Database and messaging
+gem 'redis', '~> 5.4'
+gem 'bigdecimal'
+
+# Utilities
+gem 'yaml'
+gem 'json'
+gem 'fileutils'
+gem 'securerandom'
+gem 'awesome_print'  # Required by smart_message's simple_stats
+
+# Development and testing
+group :development, :test do
+  gem 'minitest', '~> 5.25'
+  gem 'minitest-reporters'
+  gem 'rake'
+end
+
+group :development do
+  gem 'debug'
+end

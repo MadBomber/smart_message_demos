@@ -6,7 +6,7 @@ task :web do
   puts '   Access at: http://localhost:4567'
   puts '   Press Ctrl+C to stop'
   puts ''
-  system('ruby web_service_launcher.rb')
+  system('bundle exec ruby web_service_launcher.rb')
 end
 
 desc 'Start web launcher and open browser'
