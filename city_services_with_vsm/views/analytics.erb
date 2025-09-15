@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - City Services</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: white;
+            font-size: 2.5em;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .chart-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .chart-card h2 {
+            margin-bottom: 20px;
+            color: #ecf0f1;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+        .stat-change {
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .stat-change.positive {
+            color: #2ecc71;
+        }
+        .stat-change.negative {
+            color: #e74c3c;
+        }
+        .service-performance {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .performance-table th,
+        .performance-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .performance-table th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+        .performance-table .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .performance-table .status-running {
+            background: #2ecc71;
+        }
+        .performance-table .status-stopped {
+            background: #e74c3c;
+        }
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Analytics Dashboard</h1>
+        <div class="nav-links">
+            <a href="/">Service Launcher</a>
+            <a href="/dashboard">Live Dashboard</a>
+            <a href="/citizen">Citizen Portal</a>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div id="total-services" class="stat-value">0</div>
+            <div class="stat-label">Total Services</div>
+            <div id="services-change" class="stat-change">--</div>
+        </div>
+        <div class="stat-card">
+            <div id="running-services" class="stat-value">0</div>
+            <div class="stat-label">Running Services</div>
+            <div id="running-change" class="stat-change">--</div>
+        </div>
+        <div class="stat-card">
+            <div id="total-uptime" class="stat-value">0h</div>
+            <div class="stat-label">Total Uptime</div>
+            <div id="uptime-change" class="stat-change">--</div>
+        </div>
+        <div class="stat-card">
+            <div id="message-throughput" class="stat-value">0</div>
+            <div class="stat-label">Messages/Hour</div>
+            <div id="throughput-change" class="stat-change">--</div>
+        </div>
+    </div>
+
+    <div class="analytics-grid">
+        <div class="chart-card">
+            <h2>Service Uptime Distribution</h2>
+            <div class="chart-container">
+                <canvas id="uptime-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Message Activity by Service</h2>
+            <div class="chart-container">
+                <canvas id="activity-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Service Performance Over Time</h2>
+            <div class="chart-container">
+                <canvas id="performance-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Emergency Type Distribution</h2>
+            <div class="chart-container">
+                <canvas id="emergency-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="service-performance">
+        <h2>📈 Service Performance Details</h2>
+        <table class="performance-table" id="performance-table">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th>Uptime</th>
+                    <th>Messages</th>
+                    <th>CPU Usage</th>
+                    <th>Memory</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Performance data will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let charts = {};
+        let performanceHistory = [];
+
+        function initializeCharts() {
+            // Uptime Distribution Chart
+            const uptimeCtx = document.getElementById('uptime-chart').getContext('2d');
+            charts.uptime = new Chart(uptimeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Running', 'Stopped'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#2ecc71', '#e74c3c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Activity Chart
+            const activityCtx = document.getElementById('activity-chart').getContext('2d');
+            charts.activity = new Chart(activityCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Messages',
+                        data: [],
+                        backgroundColor: '#3498db',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Performance Over Time Chart
+            const performanceCtx = document.getElementById('performance-chart').getContext('2d');
+            charts.performance = new Chart(performanceCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Running Services',
+                        data: [],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Emergency Types Chart
+            const emergencyCtx = document.getElementById('emergency-chart').getContext('2d');
+            charts.emergency = new Chart(emergencyCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Fire', 'Medical', 'Crime', 'Accident', 'Utility', 'Other'],
+                    datasets: [{
+                        data: [15, 25, 20, 18, 12, 10],
+                        backgroundColor: [
+                            '#e74c3c',
+                            '#f39c12',
+                            '#3498db',
+                            '#9b59b6',
+                            '#1abc9c',
+                            '#95a5a6'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMetrics(data) {
+            const services = Object.keys(data);
+            const runningServices = services.filter(name => data[name].status === 'running');
+            const totalUptime = runningServices.reduce((sum, name) => sum + data[name].uptime, 0);
+            const totalMessages = runningServices.reduce((sum, name) => sum + (data[name].message_count || 0), 0);
+
+            document.getElementById('total-services').textContent = services.length;
+            document.getElementById('running-services').textContent = runningServices.length;
+            document.getElementById('total-uptime').textContent = Math.floor(totalUptime / 3600) + 'h';
+            document.getElementById('message-throughput').textContent = Math.floor(totalMessages / Math.max(totalUptime / 3600, 1));
+
+            // Update charts
+            charts.uptime.data.datasets[0].data = [runningServices.length, services.length - runningServices.length];
+            charts.uptime.update();
+
+            // Activity chart
+            const serviceNames = runningServices.map(name => name.replace(/_/g, ' '));
+            const messageCounts = runningServices.map(name => data[name].message_count || 0);
+
+            charts.activity.data.labels = serviceNames;
+            charts.activity.data.datasets[0].data = messageCounts;
+            charts.activity.update();
+
+            // Performance over time
+            const now = new Date().toLocaleTimeString();
+            if (performanceHistory.length > 20) {
+                performanceHistory.shift();
+                charts.performance.data.labels.shift();
+                charts.performance.data.datasets[0].data.shift();
+            }
+
+            performanceHistory.push({ time: now, running: runningServices.length });
+            charts.performance.data.labels.push(now);
+            charts.performance.data.datasets[0].data.push(runningServices.length);
+            charts.performance.update();
+
+            // Update performance table
+            updatePerformanceTable(data);
+        }
+
+        function updatePerformanceTable(data) {
+            const tbody = document.querySelector('#performance-table tbody');
+            tbody.innerHTML = '';
+
+            Object.keys(data).forEach(serviceName => {
+                const service = data[serviceName];
+                const row = document.createElement('tr');
+
+                const uptime = service.status === 'running' ?
+                    Math.floor(service.uptime / 3600) + 'h ' + Math.floor((service.uptime % 3600) / 60) + 'm' :
+                    'Stopped';
+
+                const cpu = Math.floor(Math.random() * 30 + 5) + '%'; // Simulated
+                const memory = Math.floor(Math.random() * 200 + 50) + 'MB'; // Simulated
+
+                row.innerHTML = `
+                    <td>${serviceName.replace(/_/g, ' ')}</td>
+                    <td>
+                        <span class="status-indicator status-${service.status === 'running' ? 'running' : 'stopped'}"></span>
+                        ${service.status === 'running' ? 'Running' : 'Stopped'}
+                    </td>
+                    <td>${uptime}</td>
+                    <td>${service.message_count || 0}</td>
+                    <td>${cpu}</td>
+                    <td>${memory}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function refreshData() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    updateMetrics(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching metrics:', error);
+                });
+        }
+
+        // Initialize charts and start auto-refresh
+        initializeCharts();
+        refreshData();
+        setInterval(refreshData, 10000); // Refresh every 10 seconds
+    </script>
+</body>
+</html>

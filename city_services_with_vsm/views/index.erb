@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Services Launcher</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .controls {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .controls button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .controls button:hover {
+            background: #45a049;
+        }
+        .controls button.danger {
+            background: #f44336;
+        }
+        .controls button.danger:hover {
+            background: #da190b;
+        }
+        .controls button.primary {
+            background: #2196F3;
+        }
+        .controls button.primary:hover {
+            background: #0b7dda;
+        }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .service-category {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .service-category h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .service-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .service-item:hover {
+            background: #f0f0f0;
+        }
+        .service-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .service-info {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .service-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .service-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        .status-indicator.running {
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        .service-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .service-controls button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .service-controls button.start {
+            background: #4CAF50;
+            color: white;
+        }
+        .service-controls button.start:hover {
+            background: #45a049;
+        }
+        .service-controls button.stop {
+            background: #f44336;
+            color: white;
+        }
+        .service-controls button.stop:hover {
+            background: #da190b;
+        }
+        .service-controls button.logs {
+            background: #2196F3;
+            color: white;
+        }
+        .service-controls button.logs:hover {
+            background: #0b7dda;
+        }
+        #status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #status-message.success {
+            background: #4CAF50;
+        }
+        #status-message.error {
+            background: #f44336;
+        }
+        .logs-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .logs-content {
+            background-color: #1e1e1e;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 70%;
+            overflow-y: auto;
+            position: relative;
+        }
+        .logs-content pre {
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .close-logs {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-logs:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏙️ City Services Launcher</h1>
+
+        <div class="controls">
+            <button onclick="startSelected()" class="primary">▶️ Start Selected</button>
+            <button onclick="startAll()">🚀 Start All</button>
+            <button onclick="stopAll()" class="danger">🛑 Stop All</button>
+            <button onclick="selectAllDepartments()">✅ Select All Departments</button>
+            <button onclick="selectEssential()">⭐ Select Essential</button>
+            <button onclick="clearSelection()">❌ Clear Selection</button>
+        </div>
+
+        <div class="controls" style="margin-bottom: 20px;">
+            <button onclick="window.location.href='/dashboard'" class="primary">📊 Live Dashboard</button>
+            <button onclick="window.location.href='/analytics'" class="primary">📈 Analytics</button>
+            <button onclick="window.location.href='/citizen'" class="danger">🚨 Citizen Portal</button>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-category">
+                <h2>🏛️ Departments</h2>
+                <% @services[:departments].each do |service| %>
+                    <div class="service-item">
+                        <input type="checkbox" id="<%= service[:name] %>" name="service" value="<%= service[:name] %>">
+                        <div class="service-info">
+                            <div class="service-name"><%= service[:display_name] %></div>
+                            <div class="service-desc"><%= service[:description] %> (<%= service[:type] %>)</div>
+                        </div>
+                        <div class="service-status">
+                            <span class="status-indicator <%= service_running?(service[:name]) ? 'running' : '' %>" id="status-<%= service[:name] %>"></span>
+                        </div>
+                        <div class="service-controls">
+                            <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
+                            <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
+                            <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+
+            <div class="service-category">
+                <h2>🏗️ Infrastructure</h2>
+                <% @services[:infrastructure].each do |service| %>
+                    <div class="service-item">
+                        <input type="checkbox" id="<%= service[:name] %>" name="service" value="<%= service[:name] %>">
+                        <div class="service-info">
+                            <div class="service-name"><%= service[:display_name] %></div>
+                            <div class="service-desc"><%= service[:description] %></div>
+                        </div>
+                        <div class="service-status">
+                            <span class="status-indicator <%= service_running?(service[:name]) ? 'running' : '' %>" id="status-<%= service[:name] %>"></span>
+                        </div>
+                        <div class="service-controls">
+                            <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
+                            <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
+                            <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+
+            <div class="service-category">
+                <h2>👥 Actors</h2>
+                <% @services[:actors].each do |service| %>
+                    <div class="service-item">
+                        <input type="checkbox" id="<%= service[:name] %>" name="service" value="<%= service[:name] %>">
+                        <div class="service-info">
+                            <div class="service-name"><%= service[:display_name] %></div>
+                            <div class="service-desc"><%= service[:description] %></div>
+                        </div>
+                        <div class="service-status">
+                            <span class="status-indicator <%= service_running?(service[:name]) ? 'running' : '' %>" id="status-<%= service[:name] %>"></span>
+                        </div>
+                        <div class="service-controls">
+                            <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
+                            <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
+                            <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+
+            <div class="service-category">
+                <h2>📊 Monitors</h2>
+                <% @services[:monitors].each do |service| %>
+                    <div class="service-item">
+                        <input type="checkbox" id="<%= service[:name] %>" name="service" value="<%= service[:name] %>">
+                        <div class="service-info">
+                            <div class="service-name"><%= service[:display_name] %></div>
+                            <div class="service-desc"><%= service[:description] %></div>
+                        </div>
+                        <div class="service-status">
+                            <span class="status-indicator <%= service_running?(service[:name]) ? 'running' : '' %>" id="status-<%= service[:name] %>"></span>
+                        </div>
+                        <div class="service-controls">
+                            <button class="start" onclick="startService('<%= service[:name] %>')">▶️</button>
+                            <button class="stop" onclick="stopService('<%= service[:name] %>')">⏹️</button>
+                            <button class="logs" onclick="showLogs('<%= service[:name] %>')">📋</button>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-message"></div>
+
+    <div id="logs-modal" class="logs-modal">
+        <div class="logs-content">
+            <span class="close-logs" onclick="closeLogs()">&times;</span>
+            <h3 style="color: white; margin-bottom: 10px;">Service Logs</h3>
+            <pre id="logs-text"></pre>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    Object.keys(data).forEach(service => {
+                        const indicator = document.getElementById('status-' + service);
+                        if (indicator) {
+                            if (data[service].running) {
+                                indicator.classList.add('running');
+                            } else {
+                                indicator.classList.remove('running');
+                            }
+                        }
+                    });
+                });
+        }
+
+        function startService(serviceName) {
+            fetch('/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'service=' + serviceName
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            });
+        }
+
+        function stopService(serviceName) {
+            fetch('/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'service=' + serviceName
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            });
+        }
+
+        function startSelected() {
+            const checkboxes = document.querySelectorAll('input[name="service"]:checked');
+            const services = Array.from(checkboxes).map(cb => cb.value);
+
+            if (services.length === 0) {
+                showMessage('No services selected', 'error');
+                return;
+            }
+
+            fetch('/start_selected', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ services: services })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const successes = data.results.filter(r => r.success).length;
+                showMessage(`Started ${successes} of ${services.length} services`, 'success');
+                updateStatus();
+            });
+        }
+
+        function startAll() {
+            const checkboxes = document.querySelectorAll('input[name="service"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            startSelected();
+        }
+
+        function stopAll() {
+            fetch('/stop_all', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success ? 'success' : 'error');
+                updateStatus();
+            });
+        }
+
+        function selectAllDepartments() {
+            const checkboxes = document.querySelectorAll('input[name="service"]');
+            checkboxes.forEach(cb => {
+                if (cb.id.includes('department')) {
+                    cb.checked = true;
+                }
+            });
+        }
+
+        function selectEssential() {
+            clearSelection();
+            const essential = ['city_council', 'emergency_dispatch', 'police_department', 'fire_department', 'health_department', 'redis_monitor'];
+            essential.forEach(service => {
+                const checkbox = document.getElementById(service);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('input[name="service"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        function showLogs(serviceName) {
+            fetch('/logs/' + serviceName)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('logs-text').textContent = data;
+                    document.getElementById('logs-modal').style.display = 'block';
+                });
+        }
+
+        function closeLogs() {
+            document.getElementById('logs-modal').style.display = 'none';
+        }
+
+        // Update status every 2 seconds
+        setInterval(updateStatus, 2000);
+        updateStatus();
+    </script>
+</body>
+</html>
