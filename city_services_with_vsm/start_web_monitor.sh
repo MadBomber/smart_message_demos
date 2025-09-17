@@ -30,4 +30,4 @@ if lsof -i :4567 >/dev/null 2>&1; then
 fi
 
 # Start the web application
-bundle exec ruby redis_monitor_clean.rb
+bundle exec ruby redis_monitor_web_polling.rb

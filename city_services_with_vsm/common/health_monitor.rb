@@ -69,8 +69,10 @@ module Common
         details:         details
       )
 
+      # Send response back to the health check sender, not broadcast
+      status_msg.to = health_check.from
       status_msg.publish
-      @logger.info("Sent health status: #{status} (#{details})")
+      @logger.info("Sent health status to #{health_check.from}: #{status} (#{details})")
     rescue => e
       emoji = respond_to?(:service_emoji) ? service_emoji : "🔧"
       puts "#{emoji} Error responding to health check: #{e.message}"

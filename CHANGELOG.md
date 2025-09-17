@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2025-09-16
+### Added
+- **Redis Message Monitor Web Interface** - Comprehensive web-based monitoring system
+  - Added web service launcher with Sinatra-based interface at `http://localhost:4567`
+  - Created web launcher Rake tasks for easy service startup and browser opening
+  - Implemented both Server-Sent Events (SSE) and Polling monitoring approaches
+  - Added analytics dashboard view with Chart.js for data visualization
+  - Created citizen portal and network visualization views
+  - Added responsive design with engaging user experience and interactive elements
+
+- **Process Management Tools** - Enhanced development workflow utilities
+  - Added `kill_port_4567.sh` script for terminating processes on port 4567
+  - Created comparison documentation between SSE vs Polling approaches
+  - Added multiple Redis monitor implementations (clean, simple, web-based)
+  - Enhanced start/stop scripts for web monitoring services
+
+### Changed
+- **Dependency Management** - Updated project dependencies and structure
+  - Updated main Gemfile to comment out unused dependencies and increase `ruby_llm` version
+  - Added dedicated City Services with VSM Gemfile and Gemfile.lock
+  - Included core dependencies: Sinatra, Redis, Minitest, Debug utilities
+  - Added .gitignore for city_services_with_vsm subdirectory
+  - Enhanced test infrastructure with dedicated test helper for web services
+
+### Technical Details
+- **Web Monitoring Infrastructure**: Complete web-based monitoring system with real-time Redis message visualization
+- **Service Architecture**: Enhanced service launcher supporting both traditional and web-based monitoring approaches
+- **Development Tools**: Improved development workflow with automated process management and monitoring capabilities
+
 ## 2025-09-13
 ### Fixed
 - **StatusLine Module Refactoring** - Improved maintainability and reliability
