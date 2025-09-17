@@ -42,9 +42,103 @@ class ServiceLauncher < Sinatra::Base
 
     set :message_history, []
     set :service_metrics, Hash.new { |h, k| h[k] = { messages_sent: 0, messages_received: 0, uptime: 0 } }
+
+    # Enhanced monitoring settings
+    set :message_buffer, []
+    set :message_buffer_mutex, Mutex.new
+    set :active_monitor_streams, Set.new
+    set :monitor_filters, {
+      message_types: Set.new,
+      services: Set.new
+    }
   end
 
+  # Available message types for monitoring
+  MESSAGE_TYPES = %w[
+    Messages::Emergency911Message
+    Messages::PoliceDispatchMessage
+    Messages::FireDispatchMessage
+    Messages::FireEmergencyMessage
+    Messages::SilentAlarmMessage
+    Messages::HealthCheckMessage
+    Messages::HealthStatusMessage
+    Messages::EmergencyResolvedMessage
+    Messages::DepartmentAnnouncementMessage
+    Messages::ServiceRequestMessage
+  ].freeze
+
+  # Available city services for monitoring
+  CITY_SERVICES = %w[
+    emergency-dispatch-center
+    health-department
+    police-department
+    fire-department
+    first-national-bank
+    citizens
+    houses
+    city-council
+    visitor
+    tip-line
+  ].freeze
+
   helpers do
+    # Extract message type from parsed message
+    def extract_message_type(message)
+      # Try to extract message class/type from various places
+      message['_sm_header']&.dig('message_class') ||
+        message['headers']&.dig('message_class') ||
+        message['_sm_header']&.dig('message_type') ||
+        message['headers']&.dig('message_type') ||
+        message['type'] ||
+        message['class'] ||
+        message['message_type'] ||
+        'UnknownMessage'
+    end
+
+    # Check if message should be displayed based on filters
+    def should_display_message?(message_type, from_service, to_service)
+      # If no filters set, show nothing (user must select what they want to see)
+      return false if settings.monitor_filters[:message_types].empty? && settings.monitor_filters[:services].empty?
+
+      # If both filter types are set, BOTH must match
+      # If only one filter type is set, only that one needs to match
+
+      message_type_matches = true  # Default to true if no message type filter
+      service_matches = true       # Default to true if no service filter
+
+      # Check message type filter (only if message types are selected)
+      if !settings.monitor_filters[:message_types].empty?
+        message_type_matches = settings.monitor_filters[:message_types].include?(message_type)
+      end
+
+      # Check service filter (only if services are selected)
+      if !settings.monitor_filters[:services].empty?
+        # Check for exact match or prefix match for multi-instance services
+        service_match = false
+
+        settings.monitor_filters[:services].each do |filter|
+          # For citizens, houses, visitors - match by prefix
+          if ['citizens', 'houses', 'visitors'].include?(filter)
+            # Convert plural to singular for matching
+            prefix = filter.chomp('s')  # Remove the 's' to get citizen, house, visitor
+            service_match = true if from_service&.start_with?(prefix) || to_service&.start_with?(prefix)
+          else
+            # For other services, exact match
+            service_match = true if from_service == filter || to_service == filter
+          end
+          break if service_match
+        end
+
+        # Broadcast messages show if any service filter is active
+        is_broadcast = to_service == 'broadcast' || to_service == '*'
+
+        service_matches = service_match || is_broadcast
+      end
+
+      # Both conditions must be true
+      message_type_matches && service_matches
+    end
+
     def discover_services
       services = {
         departments: [],
@@ -106,7 +200,7 @@ class ServiceLauncher < Sinatra::Base
       # Monitoring services
       services[:monitors] = [
         { name: 'redis_monitor', display_name: 'Redis Monitor', command: 'bundle exec ruby redis_monitor.rb', description: 'Real-time message traffic' },
-        { name: 'redis_stats', display_name: 'Redis Statistics', command: 'bundle exec ruby redis_stats.rb', description: 'Performance metrics dashboard' }
+        { name: 'redis_stats', display_name: 'Redis Statistics', command: 'bundle exec ruby redis_stats.rb', description: 'Performance metrics analysis' }
       ]
 
       services
@@ -364,23 +458,6 @@ class ServiceLauncher < Sinatra::Base
     status.to_json
   end
 
-  # Service status for network view - includes all services with full metadata
-  get '/services/status' do
-    content_type :json
-    service_data = {}
-    discover_services.each do |category, services|
-      services.each do |service|
-        service_data[service[:name]] = {
-          name: service[:name],
-          display_name: service[:display_name],
-          type: category.to_s,
-          running: service_running?(service[:name]),
-          metrics: settings.service_metrics[service[:name]]
-        }
-      end
-    end
-    service_data.to_json
-  end
 
   get '/logs/:service' do
     service_name = params[:service]
@@ -472,122 +549,7 @@ class ServiceLauncher < Sinatra::Base
     erb :console
   end
 
-  # Real-time Dashboard
-  get '/dashboard' do
-    @services = discover_services
-    @running_services = settings.running_services
-    erb :dashboard
-  end
 
-  # Network Visualization
-  get '/network' do
-    @services = discover_services
-    @running_services = settings.running_services
-    erb :network
-  end
-
-  # Network SSE stream
-  get '/network/stream' do
-    content_type 'text/event-stream'
-    headers 'Cache-Control' => 'no-cache',
-            'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no'
-
-    stream(:keep_open) do |out|
-      begin
-        # Send initial service status
-        service_data = {}
-        discover_services.each do |category, services|
-          services.each do |service|
-            service_data[service[:name]] = {
-              name: service[:name],
-              display_name: service[:display_name],
-              type: category.to_s,
-              running: service_running?(service[:name]),
-              metrics: settings.service_metrics[service[:name]]
-            }
-          end
-        end
-        out << "data: #{JSON.generate({services: service_data})}\n\n"
-
-        # Subscribe to Redis messages if available
-        if settings.redis_available
-          redis = Redis.new(host: 'localhost', port: 6379)
-          redis.psubscribe('*') do |on|
-            on.pmessage do |pattern, channel, message|
-              begin
-                # Send message for network visualization
-                out << "data: #{JSON.generate({
-                  type: 'message',
-                  channel: channel,
-                  message: message,
-                  timestamp: Time.now.to_f
-                })}\n\n"
-
-                # Update metrics
-                if message.include?('from:')
-                  from_match = message.match(/from:\s*(\S+)/)
-                  if from_match
-                    sender = from_match[1]
-                    settings.service_metrics[sender][:messages_sent] += 1
-                  end
-                end
-
-                if message.include?('to:')
-                  to_match = message.match(/to:\s*(\S+)/)
-                  if to_match
-                    receiver = to_match[1]
-                    settings.service_metrics[receiver][:messages_received] += 1
-                  end
-                end
-
-                # Periodically send updated service status
-                if rand < 0.1  # 10% chance to send status update
-                  service_data = {}
-                  discover_services.each do |category, services|
-                    services.each do |service|
-                      service_data[service[:name]] = {
-                        name: service[:name],
-                        display_name: service[:display_name],
-                        type: category.to_s,
-                        running: service_running?(service[:name]),
-                        metrics: settings.service_metrics[service[:name]]
-                      }
-                    end
-                  end
-                  out << "data: #{JSON.generate({services: service_data})}\n\n"
-                end
-              rescue => e
-                puts "Error in network stream: #{e.message}"
-              end
-            end
-          end
-        else
-          # Fallback: just send periodic status updates
-          loop do
-            sleep 5
-            service_data = {}
-            discover_services.each do |category, services|
-              services.each do |service|
-                service_data[service[:name]] = {
-                  name: service[:name],
-                  display_name: service[:display_name],
-                  type: category.to_s,
-                  running: service_running?(service[:name]),
-                  metrics: settings.service_metrics[service[:name]]
-                }
-              end
-            end
-            out << "data: #{JSON.generate({services: service_data})}\n\n"
-          end
-        end
-      rescue => e
-        puts "Network stream error: #{e.message}"
-      ensure
-        out.close
-      end
-    end
-  end
 
   # Redis message monitoring
   get '/messages/stream' do
@@ -660,12 +622,6 @@ class ServiceLauncher < Sinatra::Base
     settings.message_history.last(50).to_json
   end
 
-  # Analytics dashboard
-  get '/analytics' do
-    @services = discover_services
-    @running_services = settings.running_services
-    erb :analytics
-  end
 
   # Service metrics API
   get '/metrics' do
@@ -693,6 +649,137 @@ class ServiceLauncher < Sinatra::Base
     end
 
     metrics.to_json
+  end
+
+  # Enhanced Redis Message Monitor
+  get '/monitor' do
+    erb :monitor
+  end
+
+  # Get current filter settings
+  get '/api/filters' do
+    content_type :json
+    {
+      message_types: settings.monitor_filters[:message_types].to_a,
+      services: settings.monitor_filters[:services].to_a
+    }.to_json
+  end
+
+  # Update filter settings
+  post '/api/filters' do
+    content_type :json
+
+    begin
+      data = JSON.parse(request.body.read)
+
+      # Update message type filters
+      if data['message_types']
+        settings.monitor_filters[:message_types] = Set.new(data['message_types'])
+      end
+
+      # Update service filters
+      if data['services']
+        settings.monitor_filters[:services] = Set.new(data['services'])
+      end
+
+      { success: true, filters: {
+        message_types: settings.monitor_filters[:message_types].to_a,
+        services: settings.monitor_filters[:services].to_a
+      }}.to_json
+    rescue => e
+      { success: false, error: e.message }.to_json
+    end
+  end
+
+  # Enhanced SSE endpoint for message monitoring with filters
+  get '/api/monitor/stream' do
+    content_type 'text/event-stream'
+    headers 'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'Access-Control-Allow-Origin' => '*'
+
+    stream(:keep_open) do |out|
+      if !settings.redis_available
+        out << "data: #{JSON.generate(type: 'error', message: 'Redis not available')}\n\n"
+        return
+      end
+
+      settings.active_monitor_streams.add(out)
+
+      # Send initial connection message
+      out << "data: #{JSON.generate(type: 'connected', timestamp: Time.now.to_f)}\n\n"
+
+      begin
+        # Create a separate Redis client for this stream
+        redis = Redis.new(host: 'localhost', port: 6379, timeout: 5)
+
+        # Subscribe to SmartMessage channels
+        redis.psubscribe('Messages::*') do |on|
+          on.pmessage do |pattern, channel, message|
+            begin
+              # Parse the message
+              parsed_message = JSON.parse(message)
+
+              # Extract metadata
+              message_type = extract_message_type(parsed_message)
+              from_service = parsed_message.dig('_sm_header', 'from') ||
+                           parsed_message.dig('headers', 'from') || 'unknown'
+              to_service = parsed_message.dig('_sm_header', 'to') ||
+                         parsed_message.dig('headers', 'to') || 'broadcast'
+
+              # Apply filters
+              if should_display_message?(message_type, from_service, to_service)
+                # Prepare display message
+                display_message = {
+                  type: 'message',
+                  channel: channel,
+                  message_type: message_type,
+                  from: from_service,
+                  to: to_service,
+                  content: parsed_message,
+                  timestamp: Time.now.to_f
+                }
+
+                # Send to stream
+                out << "data: #{display_message.to_json}\n\n"
+
+                # Store in buffer
+                settings.message_buffer_mutex.synchronize do
+                  settings.message_buffer << display_message
+                  settings.message_buffer.shift if settings.message_buffer.length > 1000
+                end
+              end
+            rescue JSON::ParserError => e
+              # Handle non-JSON messages
+              out << "data: #{JSON.generate(
+                type: 'message',
+                channel: channel,
+                message_type: 'Raw',
+                content: { raw: message },
+                timestamp: Time.now.to_f
+              )}\n\n"
+            end
+          end
+        end
+      rescue => e
+        out << "data: #{JSON.generate(type: 'error', message: e.message)}\n\n"
+      ensure
+        settings.active_monitor_streams.delete(out)
+        redis&.close
+      end
+    end
+  end
+
+  # Get buffered messages (for initial load)
+  get '/api/monitor/messages' do
+    content_type :json
+
+    messages = []
+    settings.message_buffer_mutex.synchronize do
+      messages = settings.message_buffer.last(100)
+    end
+
+    messages.to_json
   end
 
   # Citizen Portal
