@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2025-09-17
+### Added
+- **Redis Monitor JSONL Logging** - Enhanced message logging and analysis capabilities
+  - Modified `redis_monitor.rb` to log all messages to `city_sim_message_log.jsonl` file
+  - Added structured JSONL output with timestamp, channel, message_class, from/to fields
+  - Fixed nil handling errors for payload fields in HealthCheck and HealthStatus messages
+  - Ensured Redis Monitor launches first in demo rake task for complete message capture
+
+- **Network Activity Analyzer** - New analysis tool for message traffic patterns
+  - Created `network_activity.rb` to analyze JSONL message logs
+  - Displays comprehensive statistics: message counts, department activity, communication paths
+  - Identifies broadcast vs point-to-point messages
+  - Shows top message classes and department communication patterns
+  - Fixed Time.parse error by adding required 'time' library
+
+- **Gosu-Based Network Animation** - Interactive visual network traffic monitoring
+  - Created `network_animation.rb` using Gosu graphics library for real-time visualization
+  - Implemented dynamic window sizing based on monitor dimensions (90% of screen, square aspect)
+  - Added dynamic department creation as they appear during simulation
+  - Enhanced message sprites with larger size (10→12px) and longer comet-like trails (20 particles)
+  - Implemented sophisticated broadcast animation:
+    * Clear source identification with pulsing department highlight
+    * Visible line from broadcasting department to center
+    * Ripple effects emanating from center outward (8 waves, 5 rings each)
+    * Water-like blue gradient colors (cyan → deep blue)
+    * Dynamic timing that slows animation during broadcasts for visibility
+  - Added keyboard controls: SPACE (pause), ↑/↓ (speed), R (restart), ESC (quit)
+  - Configurable clock rate via command line argument
+
+### Changed
+- **Demo Launch Sequence** - Optimized for complete message capture
+  - Modified `start_demo.sh` to launch Redis Monitor as first service
+  - Reordered service startup to ensure all messages are logged from beginning
+  - Updated tab counts and status output to reflect new launch order
+
+### Fixed
+- **Redis Monitor Error Handling** - Improved robustness
+  - Fixed undefined method '[]' error for nil check_id in HealthCheck messages
+  - Fixed undefined method 'upcase' for nil status in HealthStatus messages
+  - Added safe navigation and default values for potentially nil fields
+
+### Technical Details
+- **Message Visualization**: Complete network traffic animation system with department nodes, message flows, and broadcast ripples
+- **Data Analysis**: JSONL-based message logging enabling post-simulation analysis and replay
+- **Animation Engine**: Gosu-powered graphics with dynamic layouts, particle effects, and responsive controls
+
 ## 2025-09-16
 ### Added
 - **Redis Message Monitor Web Interface** - Comprehensive web-based monitoring system
