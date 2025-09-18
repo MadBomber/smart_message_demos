@@ -49,13 +49,29 @@ tell application "iTerm2"
     -- Create new window
     set newWindow to (create window with default profile)
 
-    -- Tab 1: City Council (already created with the window)
+    -- Tab 1: Redis Monitor (already created with the window)
     tell current session of current tab of newWindow
         delay 0.5
         write text "cd '$DEMO_DIR'"
         write text "clear"
-        write text "echo 'Starting City Council (Department Generator)...'"
-        write text "ruby city_council.rb"
+        write text "echo 'Starting Redis Message Monitor...'"
+        write text "ruby redis_monitor.rb"
+    end tell
+end tell
+EOF
+
+# Tab 2: City Council
+cat <<EOF | osascript
+tell application "iTerm2"
+    tell current window
+        set newTab to (create tab with default profile)
+        tell current session of newTab
+            delay 0.5
+            write text "cd '$DEMO_DIR'"
+            write text "clear"
+            write text "echo 'Starting City Council (Department Generator)...'"
+            write text "ruby city_council.rb"
+        end tell
     end tell
 end tell
 EOF
@@ -272,16 +288,6 @@ tell application "iTerm2"
             write text "sleep 13; ruby visitor.rb 'Phoenix'"
         end tell
 
-        -- Redis Monitor
-        set newTab to (create tab with default profile)
-        tell current session of newTab
-            delay 0.5
-            write text "cd '$DEMO_DIR'"
-            write text "clear"
-            write text "echo 'Starting Redis Message Monitor...'"
-            write text "ruby redis_monitor.rb"
-        end tell
-
         -- Redis Statistics
         set newTab to (create tab with default profile)
         tell current session of newTab
@@ -309,8 +315,9 @@ if [ $? -eq 0 ]; then
     echo "   • Houses: 4 tabs"
     echo "   • Citizens: 5 tabs"
     echo "   • Visitors: 6 tabs"
-    echo "   • Support Services: 4 tabs (Bank, 911, Redis Monitor, Redis Stats)"
-    echo "   • Total Tabs: $((1 + ${#YAML_DEPARTMENTS[@]} + ${#RUBY_DEPARTMENTS[@]} + 4 + 5 + 6 + 4))"
+    echo "   • Support Services: 3 tabs (Bank, 911, Redis Stats)"
+    echo "   • Redis Monitor: 1 tab (launched first)"
+    echo "   • Total Tabs: $((1 + 1 + ${#YAML_DEPARTMENTS[@]} + ${#RUBY_DEPARTMENTS[@]} + 4 + 5 + 6 + 3))"
     echo ""
     echo "🏛️ Departments running:"
     for dept in "${YAML_DEPARTMENTS[@]}"; do
