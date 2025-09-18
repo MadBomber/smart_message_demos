@@ -14,8 +14,10 @@ class RedisMonitor
 
   def initialize
     @redis = Redis.new
+    @log_file = File.open('city_sim_message_log.jsonl', 'a')
     puts "🔍 SmartMessage Redis Monitor"
     puts "   Monitoring Redis pub/sub traffic..."
+    puts "   Logging to: city_sim_message_log.jsonl"
     puts "   Press Ctrl+C to stop\n\n"
     setup_signal_handlers
   end
@@ -24,6 +26,7 @@ class RedisMonitor
     %w[INT TERM].each do |signal|
       Signal.trap(signal) do
         puts "\n🔍 Redis monitor shutting down..."
+        @log_file&.close
         exit(0)
       end
     end
@@ -50,9 +53,24 @@ class RedisMonitor
       payload = data['_sm_payload'] || {}
 
       timestamp = Time.now.strftime('%H:%M:%S')
+      iso_timestamp = Time.now.iso8601
       from = header['from'] || 'unknown'
       to = header['to'] || 'broadcast'
       message_class = header['message_class'] || channel
+
+      # Log to JSONL file
+      log_entry = {
+        timestamp: iso_timestamp,
+        channel: channel,
+        message_class: message_class,
+        from: from,
+        to: to,
+        header: header,
+        payload: payload,
+        raw_message: message
+      }
+      @log_file.puts(log_entry.to_json)
+      @log_file.flush
 
       # Color code by message type
       color = message_color(message_class)
@@ -67,6 +85,20 @@ class RedisMonitor
 
     rescue JSON::ParserError
       # Handle non-JSON messages
+      iso_timestamp = Time.now.iso8601
+      log_entry = {
+        timestamp: iso_timestamp,
+        channel: channel,
+        message_class: 'raw',
+        from: 'unknown',
+        to: 'unknown',
+        header: {},
+        payload: {},
+        raw_message: message
+      }
+      @log_file.puts(log_entry.to_json)
+      @log_file.flush
+
       puts "📋 [#{Time.now.strftime('%H:%M:%S')}] #{channel}: #{message[0..100]}..."
       puts ""
     end
@@ -75,10 +107,12 @@ class RedisMonitor
   def show_payload_details(message_class, payload)
     case message_class
     when /HealthCheck/
-      puts "   🏥 Check ID: #{payload['check_id'][0..7]}..."
+      check_id = payload['check_id']
+      puts "   🏥 Check ID: #{check_id ? check_id[0..7] : 'unknown'}..."
     when /HealthStatus/
-      status_color = status_color(payload['status'])
-      puts "   #{status_color}📊 #{payload['service_name']}: #{payload['status'].upcase}#{color_reset}"
+      status = payload['status'] || 'unknown'
+      status_color = status_color(status)
+      puts "   #{status_color}📊 #{payload['service_name']}: #{status.upcase}#{color_reset}"
       puts "   📝 #{payload['details']}"
     when /FireEmergency/
       puts "   🔥 #{payload['house_address']} - #{payload['fire_type']} (#{payload['severity']})"
