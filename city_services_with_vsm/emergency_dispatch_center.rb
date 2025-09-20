@@ -7,6 +7,7 @@ require_relative 'messages/fire_emergency_message'
 require_relative 'messages/silent_alarm_message'
 require_relative 'messages/service_request_message'
 require_relative 'messages/department_announcement_message'
+require_relative 'messages/department_change_notification_message'
 
 require_relative 'common/health_monitor'
 require_relative 'common/logger'
@@ -29,7 +30,9 @@ class EmergencyDispatchCenter
     @active_calls = {}
     @dispatch_stats = Hash.new(0)
     @available_departments = discover_departments
-    
+    @department_routing = {} # Track routing changes from consolidations/terminations
+    @fallback_departments = {} # Track fallback routing for terminated departments
+
     setup_ai
     setup_messaging
     setup_signal_handlers
@@ -78,15 +81,21 @@ class EmergencyDispatchCenter
     Messages::SilentAlarmMessage.from(@service_name)
     Messages::ServiceRequestMessage.from(@service_name)
     Messages::DepartmentAnnouncementMessage.from(@service_name)
+    Messages::DepartmentChangeNotificationMessage.from(@service_name)
 
     # Subscribe to 911 emergency calls
     Messages::Emergency911Message.subscribe(to: '911') do |message|
       handle_emergency_call(message)
     end
-    
+
     # Subscribe to department announcements from City Council
     Messages::DepartmentAnnouncementMessage.subscribe do |message|
       handle_department_announcement(message)
+    end
+
+    # Subscribe to department change notifications (consolidations/terminations)
+    Messages::DepartmentChangeNotificationMessage.subscribe(to: @service_name) do |message|
+      handle_department_change_notification(message)
     end
 
     puts '📞 Emergency Dispatch Center (911) operational'
@@ -95,6 +104,7 @@ class EmergencyDispatchCenter
     puts "   🏢 Available departments: #{@available_departments.join(', ')}"
     puts '   🏛️ Will request new departments from City Council as needed'
     puts '   📡 Subscribed to department announcements from City Council'
+    puts '   🔄 Subscribed to department change notifications'
     puts '   📝 Logging to: emergency_dispatch_center.log'
     puts "   Press Ctrl+C to stop\n\n"
     logger.info("Emergency Dispatch Center ready - #{@available_departments.size} departments available, AI: #{@ai_available ? 'enabled' : 'disabled'}")
@@ -439,7 +449,15 @@ class EmergencyDispatchCenter
 
 
   def route_to_department(call, department, call_id)
-    case department
+    # Check if this department has been consolidated or terminated
+    actual_department = resolve_department_routing(department)
+
+    if actual_department != department
+      puts "   🔄 Routing redirected: #{department} → #{actual_department}"
+      logger.info("Routing redirected from #{department} to #{actual_department} due to department changes")
+    end
+
+    case actual_department
     when 'fire_department'
       # Only convert to FireEmergencyMessage for actual fire emergencies
       if call.emergency_type == 'fire'
@@ -549,6 +567,123 @@ class EmergencyDispatchCenter
     @dispatch_stats.each do |dept, count|
       puts "     #{dept}: #{count}"
     end
+  end
+
+  def handle_department_change_notification(notification)
+    logger.info("Received department change notification: #{notification.change_type}")
+
+    puts "\n🔔 DEPARTMENT CHANGE NOTIFICATION"
+    puts "   Type: #{notification.change_type.upcase}"
+    puts "   Affected: #{notification.affected_departments.join(', ')}"
+    puts "   Effective: #{notification.effective_immediately ? 'IMMEDIATELY' : notification.effective_date}"
+
+    case notification.change_type
+    when 'consolidated'
+      handle_consolidation(notification)
+    when 'terminated'
+      handle_termination(notification)
+    when 'created'
+      handle_new_department(notification)
+    when 'renamed'
+      handle_rename(notification)
+    end
+
+    # Update available departments
+    @available_departments = discover_departments
+    puts "   🏢 Updated department list: #{@available_departments.join(', ')}"
+    logger.info("Updated available departments after #{notification.change_type}: #{@available_departments.size} total")
+  end
+
+  def handle_consolidation(notification)
+    puts "   🔀 CONSOLIDATION: #{notification.affected_departments.join(' + ')} → #{notification.new_department}"
+
+    # Update routing table
+    notification.routing_changes.each do |old_dept, new_dept|
+      @department_routing[old_dept] = new_dept
+      logger.info("Routing update: #{old_dept} now routes to #{new_dept}")
+    end
+
+    # Update fallback
+    if notification.fallback_department
+      @fallback_departments[notification.new_department] = notification.fallback_department
+    end
+
+    # Log affected emergency types
+    if notification.emergency_types_affected.any?
+      puts "   ⚠️  Affected emergency types: #{notification.emergency_types_affected.join(', ')}"
+    end
+  end
+
+  def handle_termination(notification)
+    terminated_dept = notification.affected_departments.first
+    puts "   ❌ TERMINATION: #{terminated_dept}"
+
+    # Update routing for terminated department
+    notification.routing_changes.each do |old_dept, new_dept|
+      @department_routing[old_dept] = new_dept
+      puts "   ↪️  Calls will be routed to: #{new_dept}"
+      logger.info("Department terminated: #{old_dept} now routes to #{new_dept}")
+    end
+
+    # Set fallback
+    if notification.fallback_department
+      @fallback_departments[terminated_dept] = notification.fallback_department
+    end
+
+    # Alert about affected emergency types
+    if notification.emergency_types_affected.any?
+      puts "   ⚠️  Affected emergency types: #{notification.emergency_types_affected.join(', ')}"
+      puts "   📋 #{notification.additional_instructions}" if notification.additional_instructions
+    end
+  end
+
+  def handle_new_department(notification)
+    new_dept = notification.new_department
+    puts "   ✅ NEW DEPARTMENT: #{new_dept}"
+
+    # Remove any routing overrides for this new department
+    @department_routing.delete(new_dept)
+
+    # Add to available departments if not already there
+    @available_departments << new_dept unless @available_departments.include?(new_dept)
+
+    logger.info("New department added: #{new_dept}")
+  end
+
+  def handle_rename(notification)
+    old_name = notification.affected_departments.first
+    new_name = notification.new_department
+    puts "   ✏️  RENAME: #{old_name} → #{new_name}"
+
+    # Update routing
+    @department_routing[old_name] = new_name
+
+    # Update any existing routing that pointed to old name
+    @department_routing.each do |dept, target|
+      @department_routing[dept] = new_name if target == old_name
+    end
+
+    logger.info("Department renamed: #{old_name} to #{new_name}")
+  end
+
+  def resolve_department_routing(department)
+    # Check if this department has been rerouted
+    resolved = department
+    visited = Set.new
+
+    # Follow routing chain (handle multi-level consolidations)
+    while @department_routing.key?(resolved) && !visited.include?(resolved)
+      visited.add(resolved)
+      resolved = @department_routing[resolved]
+    end
+
+    # If department doesn't exist and we have a fallback, use it
+    if !@available_departments.include?(resolved) && @fallback_departments[department]
+      resolved = @fallback_departments[department]
+      logger.warn("Department #{department} not available, using fallback: #{resolved}")
+    end
+
+    resolved
   end
 end
 

@@ -73,7 +73,7 @@ module DogeVSM
         logger.info("DOGE VSM Analysis System completed successfully")
         logger.info("Final message count: #{message_count[0]}")
         logger.info("=" * 80)
-        exit(0)
+        # Removed exit(0) to allow program to return to service loop
       end
     end
 
@@ -249,12 +249,98 @@ module DogeVSM
       if recommendations.is_a?(Hash)
         display_recommendations_summary(recommendations)
         display_top_recommendations(recommendations)
+
+        # Send recommendations to City Council via SmartMessage
+        send_recommendations_to_council(recommendations)
       else
         puts "Received non-hash recommendations payload: #{recommendations.class}"
         puts "Content: #{recommendations.inspect.slice(0, 200)}..."
       end
 
       update_status('generate_recommendations', 'completed')
+    end
+
+    def send_recommendations_to_council(recommendations)
+      logger.info("Sending #{recommendations[:recommendations]&.length || 0} recommendations to City Council")
+      puts "\n📤 Sending recommendations to City Council via SmartMessage..."
+
+      recommendations[:recommendations]&.each do |rec|
+        begin
+          # Determine if this is a termination or consolidation recommendation
+          if rec[:departments]&.length == 1 && rec[:recommendation_type] == 'termination'
+            send_termination_recommendation(rec)
+          else
+            send_consolidation_recommendation(rec)
+          end
+        rescue => e
+          logger.error("Failed to send recommendation: #{e.message}")
+          logger.debug("Recommendation data: #{rec}")
+        end
+      end
+
+      puts "📧 All recommendations sent to City Council"
+      logger.info("Successfully sent all recommendations to City Council")
+    end
+
+    def send_termination_recommendation(rec)
+      message = Messages::TerminationRecommendationMessage.new(
+        department_name: rec[:departments].first[:name],
+        termination_reason: 'redundant',
+        detailed_rationale: rec[:rationale] || "Department functions are redundant or obsolete based on VSM analysis",
+        annual_cost: rec[:annual_cost],
+        services_to_reassign: rec[:services_to_reassign] || [],
+        priority: determine_priority(rec[:similarity_score]),
+        analyzed_by: 'doge_vsm'
+      )
+
+      message.to = 'city_council'
+      message.from = 'doge_vsm'
+      message.publish
+
+      logger.info("Sent termination recommendation for #{rec[:departments].first[:name]}")
+      puts "   ❌ Sent termination recommendation for #{rec[:departments].first[:name]}"
+    end
+
+    def send_consolidation_recommendation(rec)
+      message = Messages::ConsolidationRecommendationMessage.new(
+        proposed_name: rec[:proposed_name],
+        departments_to_merge: rec[:departments].map { |d| d[:name] },
+        similarity_score: rec[:similarity_score],
+        overlapping_functions: extract_overlapping_functions(rec),
+        estimated_annual_savings: rec[:implementation]&.dig(:estimated_savings, :estimated_annual_savings),
+        benefits: rec[:benefits] || [],
+        implementation_timeline: rec[:implementation]&.dig(:timeline) || "3-6 months",
+        unified_capabilities: rec[:unified_capabilities] || [],
+        rationale: rec[:rationale] || "Departments have significant functional overlap per VSM analysis",
+        priority: determine_priority(rec[:similarity_score]),
+        analyzed_by: 'doge_vsm'
+      )
+
+      message.to = 'city_council'
+      message.from = 'doge_vsm'
+      message.publish
+
+      logger.info("Sent consolidation recommendation: #{rec[:proposed_name]}")
+      puts "   ✅ Sent consolidation recommendation: #{rec[:proposed_name]}"
+    end
+
+    def extract_overlapping_functions(rec)
+      # Extract overlapping functions from the recommendation
+      functions = []
+      if rec[:overlapping_capabilities]
+        functions.concat(rec[:overlapping_capabilities])
+      end
+      if rec[:shared_functions]
+        functions.concat(rec[:shared_functions])
+      end
+      functions.uniq
+    end
+
+    def determine_priority(similarity_score)
+      return 'critical' if similarity_score && similarity_score > 80
+      return 'high' if similarity_score && similarity_score > 60
+      return 'normal' if similarity_score && similarity_score > 40
+      'low'
     end
 
     def handle_consolidation_result(consolidation_result, processing)

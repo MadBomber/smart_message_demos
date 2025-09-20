@@ -63,6 +63,15 @@ require_relative 'common/logger'
 require 'vsm'
 require 'smart_message'
 
+# Require the new SmartMessage classes for City Council communication
+require_relative 'messages/consolidation_recommendation_message'
+require_relative 'messages/termination_recommendation_message'
+require_relative 'messages/council_decision_message'
+require_relative 'messages/department_analysis_request_message'
+
+# Require health monitoring message classes
+require_relative 'messages/health_check_message'
+require_relative 'messages/health_status_message'
 
 require_relative 'doge_vsm/base'
 require_relative 'doge_vsm/identity'
@@ -90,22 +99,217 @@ module DogeVSM
   end
 end
 
+# Service class for continuous operation
+class DogeVSMService
+  include Common::Logger
+
+  def initialize(provider: :openai, model: 'gpt-4o')
+    @provider = provider
+    @model = model
+    @program = nil
+    @running = true
+    @last_analysis_time = nil
+    @analysis_timeout = 120 # 2 minutes in seconds
+    @pending_request = nil
+    @service_name = 'doge_vsm'
+
+    setup_signal_handlers
+    setup_message_subscription
+    setup_health_monitoring
+  end
+
+  def start
+    log "🚀 DOGE VSM Service starting..."
+    log "📡 Listening for analysis requests from City Council"
+    log "⏰ Will auto-analyze every #{@analysis_timeout} seconds if no requests received"
+    log "🏥 Health monitoring enabled - responding to health checks"
+    log "🛑 Press Ctrl+C to stop service gracefully"
+    log "🔄 Service will run continuously until interrupted"
+
+    # Perform initial analysis
+    perform_analysis("Initial startup analysis")
+
+    # Main service loop
+    while @running
+      begin
+        sleep(1)
+        check_analysis_timeout
+      rescue Interrupt
+        log "🛑 Received interrupt signal, shutting down gracefully..."
+        @running = false
+      rescue => e
+        log "❌ Error in main loop: #{e.message}"
+        log "🔄 Continuing service operation..."
+        sleep(5)
+      end
+    end
+
+    log "✅ DOGE VSM Service stopped"
+  end
+
+  private
+
+  def setup_signal_handlers
+    # Handle SIGINT (Ctrl+C) and SIGTERM gracefully
+    Signal.trap('INT') do
+      log "🛑 Received SIGINT, initiating graceful shutdown..."
+      @running = false
+    end
+
+    Signal.trap('TERM') do
+      log "🛑 Received SIGTERM, initiating graceful shutdown..."
+      @running = false
+    end
+  end
+
+  def setup_message_subscription
+    begin
+      # Subscribe to analysis requests from City Council
+      Messages::DepartmentAnalysisRequestMessage.from('doge_vsm')
+      Messages::DepartmentAnalysisRequestMessage.subscribe(to: 'doge_vsm') do |message|
+        handle_analysis_request(message)
+      end
+      log "📡 Subscribed to analysis requests from City Council"
+    rescue => e
+      log "⚠️  Failed to setup message subscription: #{e.message}"
+      log "🔄 Service will continue with timeout-based analysis only"
+    end
+  end
+
+  def setup_health_monitoring
+    begin
+      # Subscribe to health check messages
+      Messages::HealthCheckMessage.from(@service_name)
+      Messages::HealthCheckMessage.subscribe(to: @service_name) do |message|
+        handle_health_check(message)
+      end
+      log "🏥 Subscribed to health check messages"
+    rescue => e
+      log "⚠️  Failed to setup health monitoring: #{e.message}"
+      log "🔄 Service will continue without health monitoring"
+    end
+  end
+
+  def handle_analysis_request(message)
+    log "📥 Received analysis request from City Council"
+    log "🎯 Request ID: #{message.request_id}"
+    log "📋 Scope: #{message.analysis_scope}"
+
+    @pending_request = message
+    perform_analysis("City Council request: #{message.analysis_scope}")
+
+    # Reset timeout after handling request
+    @last_analysis_time = Time.now
+  end
+
+  def handle_health_check(message)
+    log "🏥 Received health check request (ID: #{message.check_id})"
+
+    # Determine our health status
+    status, details = determine_health_status
+
+    begin
+      # Send health status response back to health department
+      response = Messages::HealthStatusMessage.new(
+        service_name: @service_name,
+        check_id: message.check_id,
+        status: status,
+        details: details
+      )
+
+      response.from = @service_name
+      response.to = message.from
+      response.send
+
+      log "📤 Sent health status: #{status.upcase} (#{details})"
+    rescue => e
+      log "❌ Failed to send health status: #{e.message}"
+    end
+  end
+
+  def check_analysis_timeout
+    return if @last_analysis_time.nil?
+
+    time_since_last = Time.now - @last_analysis_time
+    if time_since_last >= @analysis_timeout
+      log "⏰ Analysis timeout reached (#{@analysis_timeout}s), performing automatic analysis"
+      perform_analysis("Automatic periodic analysis")
+    end
+  end
+
+  def perform_analysis(reason)
+    log "🔍 Starting analysis: #{reason}"
+
+    begin
+      # Create fresh program instance for each analysis
+      @program = DogeVSM::Base.new(provider: @provider, model: @model)
+
+      # Run the analysis in a thread to avoid blocking the main service loop
+      analysis_thread = Thread.new do
+        begin
+          @program.run
+          log "✅ Analysis completed successfully"
+        rescue => e
+          log "❌ Analysis thread failed: #{e.class}: #{e.message}"
+        end
+      end
+
+      @last_analysis_time = Time.now
+
+      # Clear pending request
+      @pending_request = nil
+
+    rescue => e
+      log "❌ Analysis setup failed: #{e.class}: #{e.message}"
+      log "🔄 Will retry on next cycle"
+
+      # Reset timeout to try again sooner on failure
+      @last_analysis_time = Time.now - (@analysis_timeout - 30)
+    end
+  end
+
+  def determine_health_status
+    # Check various aspects of DOGE VSM service health
+    begin
+      # Check if we can create a VSM program instance
+      test_program = DogeVSM::Base.new(provider: @provider, model: @model)
+
+      # Determine status based on service conditions
+      if @running && @program
+        if @last_analysis_time && (Time.now - @last_analysis_time) < @analysis_timeout * 2
+          ["healthy", "Analysis service operational, recent analysis completed"]
+        else
+          ["warning", "Service running but no recent analysis activity"]
+        end
+      elsif @running
+        ["warning", "Service running but no analysis program initialized"]
+      else
+        ["critical", "Service shutdown in progress"]
+      end
+    rescue => e
+      ["failed", "Cannot create VSM program: #{e.message}"]
+    end
+  end
+
+  def log(message)
+    timestamp = Time.now.strftime("%H:%M:%S")
+    puts "#{timestamp} [DOGE-VSM] #{message}"
+  end
+end
+
 # CLI interface
 if __FILE__ == $0
   system("rm -f log/doge_vsm.log")
 
   # Allow provider override via environment
   provider = ENV['DOGE_LLM_PROVIDER']&.to_sym || :openai
-  model    = ENV['DOGE_LLM_MODEL'] || 'gpt-4o' # Changed from gpt-4o-mini to gpt-4o for better tool chaining
+  model    = ENV['DOGE_LLM_MODEL'] || 'gpt-4o'
 
-  puts "CLI: Creating DogeVSM::Program with provider=#{provider}, model=#{model}"
+  puts "CLI: Creating DogeVSM Service with provider=#{provider}, model=#{model}"
 
   begin
-    program = DogeVSM::Base.new(provider: provider, model: model)
-    puts "CLI: Program created successfully, starting execution"
-    program.run
-    puts "CLI: Program execution completed"
-    exit(0)
+    service = DogeVSMService.new(provider: provider, model: model)
+    service.start
   rescue => e
     puts "CLI: Fatal error occurred: #{e.class}: #{e.message}"
     puts "CLI: Backtrace:"
