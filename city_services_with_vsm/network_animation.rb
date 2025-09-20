@@ -7,10 +7,151 @@
 require 'gosu'
 require 'json'
 require 'time'
+require 'smart_message'
+
+# Load the department change notification message
+require_relative 'messages/department_change_notification_message'
+
+class TerminationEffect
+  attr_reader :x, :y, :start_time
+  attr_accessor :progress
+
+  def initialize(x, y, effect_type = :smoke)
+    @x = x
+    @y = y
+    @effect_type = effect_type
+    @start_time = Time.now.to_f
+    @progress = 0.0
+    @duration = 3.0 # 3 seconds animation
+  end
+
+  def update(delta_time)
+    @progress += delta_time / @duration
+    @progress >= 1.0
+  end
+
+  def draw(window)
+    return if @progress >= 1.0
+
+    case @effect_type
+    when :smoke
+      draw_smoke_effect(window)
+    when :fireball
+      draw_fireball_effect(window)
+    end
+  end
+
+  private
+
+  def draw_smoke_effect(window)
+    # Puff of smoke animation - gray particles rising and expanding
+    num_particles = 15
+    num_particles.times do |i|
+      # Each particle has slight random offset
+      angle = (i / num_particles.to_f) * 2 * Math::PI + (@progress * 0.5)
+
+      # Particles rise and spread out
+      rise_offset = @progress * 80
+      spread = @progress * 30
+
+      particle_x = @x + Math.cos(angle) * spread + (rand - 0.5) * 10
+      particle_y = @y - rise_offset + (rand - 0.5) * 10
+
+      # Particles fade out over time
+      alpha = (255 * (1.0 - @progress)).to_i
+
+      # Different shades of gray for smoke
+      gray_value = 120 + (rand * 60).to_i
+      color = Gosu::Color.new(alpha, gray_value, gray_value, gray_value)
+
+      # Draw particle as small circle
+      radius = 3 + @progress * 8
+      draw_circle(window, particle_x, particle_y, radius, color)
+    end
+
+    # Central explosion flash
+    if @progress < 0.3
+      flash_alpha = (255 * (0.3 - @progress) / 0.3).to_i
+      flash_color = Gosu::Color.new(flash_alpha, 255, 100, 100)
+      draw_circle(window, @x, @y, 40, flash_color)
+    end
+  end
+
+  def draw_fireball_effect(window)
+    # Fireball animation - orange/red expanding explosion
+    if @progress < 0.7
+      # Expanding fireball
+      radius = @progress * 60
+
+      # Multiple layers for fire effect
+      5.times do |layer|
+        layer_radius = radius - (layer * 8)
+        next if layer_radius <= 0
+
+        alpha = (255 * (0.7 - @progress) / 0.7 * (1.0 - layer * 0.15)).to_i
+
+        color = case layer
+        when 0
+          Gosu::Color.new(alpha, 255, 255, 100) # Bright yellow center
+        when 1
+          Gosu::Color.new(alpha, 255, 200, 50)  # Orange
+        when 2
+          Gosu::Color.new(alpha, 255, 150, 30)  # Red-orange
+        when 3
+          Gosu::Color.new(alpha, 200, 100, 20)  # Red
+        else
+          Gosu::Color.new(alpha, 150, 50, 10)   # Dark red
+        end
+
+        draw_circle(window, @x, @y, layer_radius, color)
+      end
+    end
+
+    # Sparks flying outward
+    if @progress < 0.8
+      num_sparks = 20
+      num_sparks.times do |i|
+        angle = (i / num_sparks.to_f) * 2 * Math::PI
+        distance = @progress * 100
+
+        spark_x = @x + Math.cos(angle) * distance
+        spark_y = @y + Math.sin(angle) * distance
+
+        alpha = (255 * (0.8 - @progress) / 0.8).to_i
+        spark_color = Gosu::Color.new(alpha, 255, 255, 0)
+
+        # Draw spark as small bright dot
+        draw_circle(window, spark_x, spark_y, 2, spark_color)
+      end
+    end
+  end
+
+  def draw_circle(window, x, y, radius, color)
+    segments = 16
+    angle_step = 2 * Math::PI / segments
+
+    segments.times do |i|
+      angle1 = i * angle_step
+      angle2 = (i + 1) * angle_step
+
+      x1 = x + radius * Math.cos(angle1)
+      y1 = y + radius * Math.sin(angle1)
+      x2 = x + radius * Math.cos(angle2)
+      y2 = y + radius * Math.sin(angle2)
+
+      window.draw_triangle(
+        x, y, color,
+        x1, y1, color,
+        x2, y2, color,
+        5
+      )
+    end
+  end
+end
 
 class Department
   attr_reader :name, :x, :y, :color
-  attr_accessor :message_count, :last_activity
+  attr_accessor :message_count, :last_activity, :being_terminated
 
   def initialize(name, x, y)
     @name = name
@@ -20,26 +161,42 @@ class Department
     @color = Gosu::Color.new(255, 100, 150, 255)
     @message_count = 0
     @last_activity = 0
+    @being_terminated = false
   end
 
   def draw(font, window)
-    # Draw department circle
-    activity_fade = [(Time.now.to_f - @last_activity) * 2, 1.0].min
-    intensity = 255 - (activity_fade * 100).to_i
-    active_color = Gosu::Color.new(intensity, 100, 150, 255)
+    # If being terminated, draw with red color and warning indicators
+    if @being_terminated
+      # Draw pulsing red circle
+      pulse = Math.sin(Time.now.to_f * 4) * 0.3 + 0.7
+      terminated_color = Gosu::Color.new((255 * pulse).to_i, 255, 50, 50)
+      draw_circle(window, @x, @y, @radius + 5, terminated_color)
 
-    draw_circle(window, @x, @y, @radius, active_color)
+      # Draw warning text
+      warning_text = "TERMINATING"
+      text_width = font.text_width(warning_text)
+      font.draw_text(warning_text, @x - text_width/2, @y - @radius - 25,
+                     15, 1, 1, Gosu::Color::RED)
+    else
+      # Draw normal department circle
+      activity_fade = [(Time.now.to_f - @last_activity) * 2, 1.0].min
+      intensity = 255 - (activity_fade * 100).to_i
+      active_color = Gosu::Color.new(intensity, 100, 150, 255)
+      draw_circle(window, @x, @y, @radius, active_color)
+    end
 
-    # Draw department name
+    # Draw department name (dimmed if being terminated)
+    text_color = @being_terminated ? Gosu::Color::GRAY : Gosu::Color::WHITE
     text_width = font.text_width(@name[0..15])
     font.draw_text(@name[0..15], @x - text_width/2, @y + @radius + 5,
-                   10, 1, 1, Gosu::Color::WHITE)
+                   10, 1, 1, text_color)
 
-    # Draw message count
+    # Draw message count (dimmed if being terminated)
+    count_color = @being_terminated ? Gosu::Color::GRAY : Gosu::Color::YELLOW
     count_text = @message_count.to_s
     count_width = font.text_width(count_text)
     font.draw_text(count_text, @x - count_width/2, @y - 10,
-                   11, 1, 1, Gosu::Color::YELLOW)
+                   11, 1, 1, count_color)
   end
 
   private
@@ -282,16 +439,19 @@ class NetworkAnimationWindow < Gosu::Window
     @messages_data = []
     @departments = {}
     @active_messages = []
+    @termination_effects = []
+    @departments_to_remove = []
     @current_index = 0
     @last_update = Time.now.to_f
     @paused = false
-    @stats = { total: 0, broadcasts: 0, point_to_point: 0 }
+    @stats = { total: 0, broadcasts: 0, point_to_point: 0, terminations: 0 }
     @needs_rearrange = false
 
     @font = Gosu::Font.new(14)
     @title_font = Gosu::Font.new(20)
 
     load_messages
+    setup_termination_listener
     # Don't arrange departments yet - they'll be added dynamically
   end
 
@@ -316,6 +476,64 @@ class NetworkAnimationWindow < Gosu::Window
     end
 
     puts "📊 Loaded #{@messages_data.size} messages"
+  end
+
+  def setup_termination_listener
+    begin
+      # Subscribe to department change notifications
+      Messages::DepartmentChangeNotificationMessage.from('network_animation')
+      Messages::DepartmentChangeNotificationMessage.subscribe(to: 'network_animation') do |message|
+        handle_department_change(message)
+      end
+      puts "🔔 Listening for department change notifications"
+    rescue => e
+      puts "⚠️  Could not setup termination listener: #{e.message}"
+      puts "   Animation will still work with message logs only"
+    end
+  end
+
+  def handle_department_change(notification)
+    case notification.change_type
+    when 'terminated'
+      # Mark departments for termination
+      notification.affected_departments.each do |dept_name|
+        dept = @departments[dept_name]
+        if dept
+          puts "💥 Department #{dept_name} marked for termination"
+          dept.being_terminated = true
+
+          # Create termination effect (randomly choose smoke or fireball)
+          effect_type = [:smoke, :fireball].sample
+          @termination_effects << TerminationEffect.new(dept.x, dept.y, effect_type)
+
+          # Schedule removal after 3 seconds
+          @departments_to_remove << { dept: dept_name, remove_at: Time.now.to_f + 3.0 }
+          @stats[:terminations] += 1
+        end
+      end
+    when 'consolidated'
+      # Mark old departments for termination, will be replaced by new one
+      notification.affected_departments.each do |dept_name|
+        dept = @departments[dept_name]
+        if dept
+          puts "🔀 Department #{dept_name} being consolidated into #{notification.new_department}"
+          dept.being_terminated = true
+
+          # Create smoke effect for consolidation (less dramatic)
+          @termination_effects << TerminationEffect.new(dept.x, dept.y, :smoke)
+
+          # Schedule removal after 2 seconds (shorter for consolidation)
+          @departments_to_remove << { dept: dept_name, remove_at: Time.now.to_f + 2.0 }
+        end
+      end
+
+      # Add new consolidated department (if not already present)
+      if notification.new_department && !@departments.key?(notification.new_department)
+        puts "✨ Adding new consolidated department: #{notification.new_department}"
+        # Will be positioned when we rearrange
+        @needs_rearrange = true
+      end
+    end
   end
 
   def arrange_departments
@@ -419,6 +637,24 @@ class NetworkAnimationWindow < Gosu::Window
     # Update message animations
     message_speed = 0.02 / @clock_rate
     @active_messages.reject! { |msg| msg.update(message_speed) }
+
+    # Update termination effects
+    delta_time = current_time - (@last_effect_update || current_time)
+    @last_effect_update = current_time
+    @termination_effects.reject! { |effect| effect.update(delta_time) }
+
+    # Remove departments that have finished their termination sequence
+    current_time = Time.now.to_f
+    @departments_to_remove.reject! do |removal|
+      if current_time >= removal[:remove_at]
+        puts "🗑️  Removing department: #{removal[:dept]}"
+        @departments.delete(removal[:dept])
+        @needs_rearrange = true
+        true # Remove from list
+      else
+        false # Keep in list
+      end
+    end
   end
 
   def draw
@@ -447,6 +683,11 @@ class NetworkAnimationWindow < Gosu::Window
       msg.draw(self, @departments, @font)
     end
 
+    # Draw termination effects (on top of everything)
+    @termination_effects.each do |effect|
+      effect.draw(self)
+    end
+
     # Draw stats
     draw_stats
 
@@ -455,12 +696,14 @@ class NetworkAnimationWindow < Gosu::Window
   end
 
   def draw_stats
-    y = height - 120
+    y = height - 140
     @font.draw_text("Departments: #{@departments.size}", 20, y, 10, 1, 1, Gosu::Color::WHITE)
     @font.draw_text("Total: #{@stats[:total]}", 20, y + 20, 10, 1, 1, Gosu::Color::WHITE)
     @font.draw_text("Broadcasts: #{@stats[:broadcasts]}", 20, y + 40, 10, 1, 1, Gosu::Color::YELLOW)
     @font.draw_text("Point-to-Point: #{@stats[:point_to_point]}", 20, y + 60, 10, 1, 1, Gosu::Color::CYAN)
-    @font.draw_text("Clock Rate: #{@clock_rate}s", 20, y + 80, 10, 1, 1, Gosu::Color::GREEN)
+    @font.draw_text("Terminations: #{@stats[:terminations]}", 20, y + 80, 10, 1, 1, Gosu::Color::RED)
+    @font.draw_text("Active Effects: #{@termination_effects.size}", 20, y + 100, 10, 1, 1, Gosu::Color.argb(0xff_ff_aa_00))
+    @font.draw_text("Clock Rate: #{@clock_rate}s", 20, y + 120, 10, 1, 1, Gosu::Color::GREEN)
   end
 
   def draw_controls
@@ -495,7 +738,9 @@ class NetworkAnimationWindow < Gosu::Window
       @current_index = 0
       @active_messages.clear
       @departments.clear
-      @stats = { total: 0, broadcasts: 0, point_to_point: 0 }
+      @termination_effects.clear
+      @departments_to_remove.clear
+      @stats = { total: 0, broadcasts: 0, point_to_point: 0, terminations: 0 }
       @needs_rearrange = false
     end
   end

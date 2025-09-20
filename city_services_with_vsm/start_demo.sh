@@ -76,6 +76,40 @@ tell application "iTerm2"
 end tell
 EOF
 
+# Tab 3: DOGE VSM (Department of Government Efficiency)
+cat <<EOF | osascript
+tell application "iTerm2"
+    tell current window
+        set newTab to (create tab with default profile)
+        tell current session of newTab
+            delay 0.5
+            write text "cd '$DEMO_DIR'"
+            write text "clear"
+            write text "echo 'Starting DOGE VSM (Government Efficiency Analysis)...'"
+            write text "echo 'DOGE will analyze departments for consolidation opportunities...'"
+            write text "sleep 15; ruby doge_vsm.rb"
+        end tell
+    end tell
+end tell
+EOF
+
+# Tab 4: Web Service Launcher
+cat <<EOF | osascript
+tell application "iTerm2"
+    tell current window
+        set newTab to (create tab with default profile)
+        tell current session of newTab
+            delay 0.5
+            write text "cd '$DEMO_DIR'"
+            write text "clear"
+            write text "echo 'Starting Web Service Launcher (City Services Dashboard)...'"
+            write text "echo 'Web dashboard will be available at http://localhost:4567'"
+            write text "sleep 5; bundle exec ruby web_service_launcher.rb"
+        end tell
+    end tell
+end tell
+EOF
+
 # Generate the department tabs dynamically
 for dept in "${YAML_DEPARTMENTS[@]}"; do
     display_name=$(echo "$dept" | sed 's/_/ /g' | sed 's/\b\w/\U&/g')
@@ -309,15 +343,17 @@ if [ $? -eq 0 ]; then
     echo "✅ SmartMessage City Demo launched successfully!"
     echo ""
     echo "📊 Demo Status:"
+    echo "   • Redis Monitor: 1 tab (launched first)"
     echo "   • City Council: 1 tab"
+    echo "   • DOGE VSM: 1 tab (Government Efficiency)"
+    echo "   • Web Dashboard: 1 tab (http://localhost:4567)"
     echo "   • YAML Departments: ${#YAML_DEPARTMENTS[@]} tabs"
     echo "   • Legacy Departments: ${#RUBY_DEPARTMENTS[@]} tabs"
     echo "   • Houses: 4 tabs"
     echo "   • Citizens: 5 tabs"
     echo "   • Visitors: 6 tabs"
     echo "   • Support Services: 3 tabs (Bank, 911, Redis Stats)"
-    echo "   • Redis Monitor: 1 tab (launched first)"
-    echo "   • Total Tabs: $((1 + 1 + ${#YAML_DEPARTMENTS[@]} + ${#RUBY_DEPARTMENTS[@]} + 4 + 5 + 6 + 3))"
+    echo "   • Total Tabs: $((1 + 1 + 1 + 1 + ${#YAML_DEPARTMENTS[@]} + ${#RUBY_DEPARTMENTS[@]} + 4 + 5 + 6 + 3))"
     echo ""
     echo "🏛️ Departments running:"
     for dept in "${YAML_DEPARTMENTS[@]}"; do
@@ -328,6 +364,16 @@ if [ $? -eq 0 ]; then
     done
     echo ""
     ruby tip_line.rb
+    echo ""
+    echo "🏛️ Government Services:"
+    echo "   • DOGE VSM: Analyzes departments for efficiency and consolidation"
+    echo "   • City Council: Creates new departments and approves DOGE recommendations"
+    echo "   • Web Dashboard: Real-time city services monitoring at http://localhost:4567"
+    echo ""
+    echo "🤖 AI-Powered Features:"
+    echo "   • DOGE uses AI to identify duplicate/overlapping services"
+    echo "   • City Council uses AI to determine what new departments to create"
+    echo "   • 911 Dispatch uses AI to route emergencies to appropriate departments"
     echo ""
     echo "💡 Multiple Instance Examples:"
     echo ""
@@ -345,6 +391,10 @@ if [ $? -eq 0 ]; then
     echo "     ruby citizen.rb \"John Smith\" auto"
     echo "     ruby citizen.rb \"Mary Johnson\" auto"
     echo "     ruby citizen.rb \"Robert Brown\" auto"
+    echo ""
+    echo "   Manual DOGE analysis:"
+    echo "     ruby doge_simple.rb     # Simple version"
+    echo "     ruby doge_vsm.rb        # VSM-powered version"
     echo ""
     echo "   Single observation mode for visitors:"
     echo "     ruby visitor.rb \"Denver\" --once"

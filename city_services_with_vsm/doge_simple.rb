@@ -4,6 +4,13 @@
 require 'vsm'
 require 'yaml'
 require 'set'
+require 'smart_message'
+
+# Require the new SmartMessage classes for City Council communication
+require_relative 'messages/consolidation_recommendation_message'
+require_relative 'messages/termination_recommendation_message'
+require_relative 'messages/council_decision_message'
+require_relative 'messages/department_analysis_request_message'
 
 # Simplified DOGE that works directly with Operations tools
 class SimpleDOGE
@@ -44,9 +51,92 @@ class SimpleDOGE
 
     # Display results
     display_results(recommendations)
+
+    # Send recommendations to City Council
+    send_recommendations_to_council(recommendations)
+  end
+
+  # Listen for analysis requests from City Council
+  def listen_for_requests
+    puts "🎧 Listening for analysis requests from City Council..."
+
+    Messages::DepartmentAnalysisRequestMessage.subscribe do |message|
+      puts "📥 Received analysis request from #{message.requested_by}"
+      puts "   Type: #{message.analysis_type}"
+      puts "   Urgency: #{message.urgency}"
+
+      # Process the request based on type
+      case message.analysis_type
+      when 'full_review', 'consolidation_scan'
+        analyze_departments
+      when 'periodic_audit'
+        puts "   Running periodic efficiency audit..."
+        analyze_departments
+      else
+        puts "   Analysis type '#{message.analysis_type}' not yet implemented"
+      end
+    end
   end
 
   private
+
+  def send_recommendations_to_council(recommendations)
+    puts "\n📤 Sending recommendations to City Council..."
+
+    recommendations[:recommendations].each do |rec|
+      # Check if this is a termination recommendation (single department with very low utilization)
+      # or a consolidation recommendation (multiple departments)
+
+      if rec[:departments].length == 1 && rec[:recommendation_type] == 'termination'
+        # Send termination recommendation
+        message = Messages::TerminationRecommendationMessage.new(
+          department_name: rec[:departments].first[:name],
+          termination_reason: 'redundant',
+          detailed_rationale: (rec[:rationale] || "Department functions are redundant or obsolete").slice(0, 900),
+          annual_cost: rec[:annual_cost],
+          services_to_reassign: rec[:services_to_reassign] || [],
+          priority: determine_priority(rec[:similarity_score]),
+          analyzed_by: 'doge_simple',
+          from: 'doge_simple',
+          to: 'city_council'
+        )
+
+        message.publish
+
+        puts "   ❌ Sent termination recommendation for #{rec[:departments].first[:name]}"
+      else
+        # Send consolidation recommendation
+        message = Messages::ConsolidationRecommendationMessage.new(
+          proposed_name: rec[:proposed_name],
+          departments_to_merge: rec[:departments].map { |d| d[:name] },
+          similarity_score: rec[:similarity_score],
+          overlapping_functions: rec[:overlapping_functions] || [],
+          estimated_annual_savings: rec[:implementation]&.dig(:estimated_savings, :estimated_annual_savings),
+          benefits: rec[:benefits] || [],
+          implementation_timeline: rec[:implementation]&.dig(:timeline) || "3-6 months",
+          unified_capabilities: rec[:unified_capabilities] || [],
+          rationale: (rec[:rationale] || "Departments have significant functional overlap").slice(0, 900),
+          priority: determine_priority(rec[:similarity_score]),
+          analyzed_by: 'doge_simple',
+          from: 'doge_simple',
+          to: 'city_council'
+        )
+
+        message.publish
+
+        puts "   ✅ Sent consolidation recommendation: #{rec[:proposed_name]}"
+      end
+    end
+
+    puts "📧 All recommendations sent to City Council"
+  end
+
+  def determine_priority(similarity_score)
+    return 'critical' if similarity_score && similarity_score > 80
+    return 'high' if similarity_score && similarity_score > 60
+    return 'normal' if similarity_score && similarity_score > 40
+    'low'
+  end
 
   def display_results(recommendations)
     puts "\n📋 ANALYSIS COMPLETE"
@@ -335,7 +425,7 @@ class SimpleDOGE
           { name: dept2[:display_name], file: dept2[:file] }
         ],
         proposed_name: combined_name,
-        rationale: reasons,
+        rationale: reasons.join('; ').slice(0, 900),
         capabilities: {
           total: all_capabilities.length,
           duplicates_eliminated: duplicates_eliminated,
