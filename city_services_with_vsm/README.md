@@ -1,5 +1,7 @@
 # City Scenario - SmartMessage & VSM Simulation
 
+This demo has become full of holes brought on by design at the keyboard rather than a clear comprehensive design that controlls overallall architecture and intent.
+
 This is an experiment in using the Ruby gems `smart_message` and `vsm` to implement a city scenario as a demonstration of **async multi-process distributed simulations**. This city scenario is tailored specifically for **macOS** and the **iTerm2** terminal application.
 
 ## Overview
@@ -11,7 +13,7 @@ This simulation demonstrates a complete city emergency response system with dyna
 Three main scripts control the simulation:
 
 - **`start_demo.sh`** - Launches all services in separate iTerm2 tabs
-- **`stop_demo.sh`** - Terminates all running city services 
+- **`stop_demo.sh`** - Terminates all running city services
 - **`de_doge.sh`** - Removes consolidated departments and restores original configurations
 
 ## Major Components
@@ -28,7 +30,7 @@ Three main scripts control the simulation:
 
 ### Incident Generators
 - **Citizens** - Generate various emergency 911 calls
-- **Houses** - Can trigger fire emergencies  
+- **Houses** - Can trigger fire emergencies
 - **Local Bank** - Generates silent alarms for police
 - **Visitors** - Out-of-town visitors who may need city services
 
@@ -75,7 +77,7 @@ The Vector Symbolic Memory (VSM) library powers the AI-driven components:
 
 2. **DOGE (`doge_vsm.rb`)**
    - **Intelligence System**: AI analysis for department consolidation recommendations
-   - **Operations System**: Similarity analysis tools and consolidation generators  
+   - **Operations System**: Similarity analysis tools and consolidation generators
    - **Governance System**: Validates consolidation quality and enforces efficiency standards
 
 ## Message Flow Diagrams
@@ -105,7 +107,7 @@ The Vector Symbolic Memory (VSM) library powers the AI-driven components:
 - **Serialization**: Automatic JSON serialization/deserialization
 - **Type Safety**: Strongly typed message schemas with validation
 
-### VSM Integration Benefits  
+### VSM Integration Benefits
 - **AI-Driven Decisions**: LLM integration for intelligent department creation
 - **Tool-Based Architecture**: Modular operations that can be tested and reused
 - **Policy Governance**: Built-in quality checks and validation rules
@@ -144,7 +146,7 @@ ruby redis_monitor.rb
 # Core services
 ruby emergency_dispatch_center.rb
 ruby city_council.rb
-ruby fire_department.rb  
+ruby fire_department.rb
 ruby police_department.rb
 ruby health_department.rb
 
